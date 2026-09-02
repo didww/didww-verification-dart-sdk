@@ -1,0 +1,13 @@
+name: _didww_verification_workspace
+publish_to: none
+environment:
+  sdk: ^3.6.0
+workspace:
+  - packages/didww_verification
+  - packages/didww_verification_sms
+  - packages/didww_verification_sms/example
+
+# The guard scripts import the client so they check the real values rather than a
+# regex over the source. This package is never published.
+dev_dependencies:
+  didww_verification: ^1.0.0

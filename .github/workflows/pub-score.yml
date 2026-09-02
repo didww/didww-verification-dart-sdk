@@ -1,0 +1,30 @@
+name: pub score
+
+# Manual only. Releasing is a manual operation here — see docs/release-checklist.md,
+# which owns the sequence — and this is the one step of it worth a runner: it scores
+# what pub.dev will score. Running it publishes nothing.
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  pana:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: dart pub global activate pana
+      # Gate on every scored category, not on a total. A threshold pinned to whatever the
+      # first green run scored is a check that cannot fail on the day it is written.
+      - run: dart pub global run pana --no-warning packages/didww_verification
+      # Five categories fail here for one cause: pana copies the package to a temporary
+      # directory and resolves it there, and didww_verification is not on pub.dev yet, so
+      # dartdoc, platform detection, analysis and `pub downgrade` never run. Publishing
+      # the client fixes it — and the publish order forces that anyway, client first.
+      # Drop this line the release after the client is up.
+      - run: dart pub global run pana --no-warning packages/didww_verification_sms
+        continue-on-error: true

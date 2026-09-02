@@ -1,0 +1,245 @@
+{
+  "capturedAt": "2026-08-31",
+  "source": "a hand-made reading of the API, not generated; see contract/README.md",
+  "basePaths": {
+    "production": "https://verification.didww.com",
+    "sandbox": "https://verification-sandbox.didww.com",
+    "apiPrefix": "/api/v1"
+  },
+  "routes": [
+    {
+      "op": "start",
+      "method": "POST",
+      "path": "/api/v1/verifications",
+      "success": 201
+    },
+    {
+      "op": "statusById",
+      "method": "GET",
+      "path": "/api/v1/verifications/{id}",
+      "success": 200
+    },
+    {
+      "op": "reportById",
+      "method": "PUT",
+      "path": "/api/v1/verifications/{id}",
+      "success": 200,
+      "alsoAccepts": [
+        "PATCH"
+      ]
+    },
+    {
+      "op": "statusByNumber",
+      "method": "GET",
+      "path": "/api/v1/verifications/by_number/{number}",
+      "success": 200
+    },
+    {
+      "op": "reportByNumber",
+      "method": "PUT",
+      "path": "/api/v1/verifications/by_number/{number}",
+      "success": 200,
+      "alsoAccepts": [
+        "PATCH"
+      ]
+    }
+  ],
+  "authSchemes": {
+    "documentedInSpec": false,
+    "note": "the published OpenAPI description lists only basicAuth; the application-key scheme is recorded from observed behaviour and no automated gate can cover it",
+    "dispatch": [
+      {
+        "mode": "basic",
+        "header": "Basic <base64(key:secret)>",
+        "inScope": true
+      },
+      {
+        "mode": "public",
+        "header": "Application <key>",
+        "inScope": true
+      },
+      {
+        "mode": "application",
+        "header": "Application <key>:<signature>",
+        "inScope": false,
+        "warning": "any colon ANYWHERE after the 'Application ' prefix routes here; never append to the key"
+      }
+    ]
+  },
+  "deliveryMethods": [
+    "sms",
+    "callout"
+  ],
+  "statuses": [
+    "pending",
+    "verified",
+    "failed",
+    "expired",
+    "denied"
+  ],
+  "apiErrorCodes": [
+    "destination_blank",
+    "destination_invalid",
+    "delivery_method_blank",
+    "delivery_method_inclusion",
+    "delivery_method_invalid",
+    "languages_invalid",
+    "app_hash_invalid",
+    "code_blank",
+    "code_value_present",
+    "destination_not_supported_for_channel",
+    "code_invalid",
+    "already_verified",
+    "not_ready_to_report",
+    "parameter_missing",
+    "not_found",
+    "unauthorized",
+    "balance_insufficient",
+    "validation_failed",
+    "internal_error",
+    "dispatch_failed",
+    "expired",
+    "too_many_attempts",
+    "stale_dispatch",
+    "application_deleted",
+    "superseded",
+    "denied_missing_callback_url",
+    "denied_by_callback",
+    "denied_invalid_callback_response"
+  ],
+  "verificationErrorCodes": [
+    "dispatch_failed",
+    "expired",
+    "too_many_attempts",
+    "stale_dispatch",
+    "application_deleted",
+    "superseded",
+    "denied_missing_callback_url",
+    "denied_by_callback",
+    "denied_invalid_callback_response"
+  ],
+  "errorDetails": {
+    "destination_blank": "destination can't be blank",
+    "destination_invalid": "destination is invalid",
+    "delivery_method_blank": "delivery method can't be blank",
+    "delivery_method_inclusion": "delivery method is not included in the list",
+    "delivery_method_invalid": "delivery method is invalid",
+    "languages_invalid": "languages are invalid",
+    "app_hash_invalid": "app hash is invalid",
+    "code_blank": "code can't be blank",
+    "code_value_present": "code must be blank",
+    "destination_not_supported_for_channel": "destination not supported for provided delivery method",
+    "code_invalid": "code is invalid",
+    "already_verified": "verification is already verified; provided value is invalid",
+    "not_ready_to_report": "verification is not ready to be reported",
+    "parameter_missing": "request body must contain a valid data object",
+    "not_found": "not found",
+    "unauthorized": "unauthorized",
+    "balance_insufficient": "insufficient balance",
+    "validation_failed": "request is invalid",
+    "internal_error": "internal server error",
+    "dispatch_failed": "failed to deliver",
+    "expired": "expired",
+    "too_many_attempts": "too many attempts",
+    "stale_dispatch": "number unreachable",
+    "application_deleted": "application deleted",
+    "superseded": "superseded",
+    "denied_missing_callback_url": "application has no callback_url",
+    "denied_by_callback": "your callback denied the request",
+    "denied_invalid_callback_response": "callback response was invalid"
+  },
+  "envelopes": {
+    "success": {
+      "root": "data",
+      "required": [
+        "id",
+        "destination",
+        "delivery_method",
+        "fee",
+        "status",
+        "error_code",
+        "error_detail",
+        "expires_at"
+      ],
+      "optional": [
+        "sms",
+        "callout"
+      ]
+    },
+    "error": {
+      "root": "errors",
+      "element": [
+        "code",
+        "detail"
+      ]
+    }
+  },
+  "smsBlock": {
+    "presentOnlyFor": "sms",
+    "required": [
+      "template",
+      "language",
+      "interception_timeout"
+    ],
+    "optional": [
+      "app_hash"
+    ],
+    "note": "template is kept when null; app_hash is omitted entirely when none was stored"
+  },
+  "calloutBlock": {
+    "presentOnlyFor": "callout",
+    "required": [
+      "language"
+    ],
+    "optional": []
+  },
+  "requestFields": {
+    "start": {
+      "data": [
+        "destination",
+        "delivery_method",
+        "<delivery_method> block"
+      ]
+    },
+    "report": {
+      "data": [
+        "delivery_method",
+        "code"
+      ]
+    }
+  },
+  "statusCodes": {
+    "400": "parameter_missing",
+    "401": "unauthorized",
+    "402": "balance_insufficient",
+    "404": "not_found",
+    "422": "validation failures",
+    "500": "internal_error"
+  },
+  "constraints": {
+    "appHashFormat": "^[A-Za-z0-9+/]{11}$",
+    "codeLength": {
+      "value": 6,
+      "note": "a SERVER fact; never compile a length into the client"
+    },
+    "maxReportAttempts": {
+      "value": 3,
+      "note": "a SERVER fact; the client keeps no attempt counter"
+    },
+    "languages": "a primary subtag of 2-3 letters and AT MOST ONE more subtag of 2-8 alphanumerics - NARROWER than BCP 47, which is the trap: zh-Hans-CN is well-formed BCP 47 and is REJECTED. Two different failures, do not conflate them: a well-formed tag the channel cannot serve falls back to en-US, while a tag of the wrong SHAPE returns 422 languages_invalid and creates no verification at all. Matched exactly, most preferred first; 'pl' does not match 'pl-PL'. Sent per channel, in the block named after the delivery method - sms.languages and callout.languages take the same tags and only the block matching delivery_method is read, so the other one is ignored rather than rejected",
+    "languageEcho": "every channel with a language echoes the tag the SERVER chose as <channel>.language in the response - the first requested tag it could serve, or en-US. It is the only way to detect a fallback, because an unservable tag of the right shape is accepted rather than rejected",
+    "languageSetsDifferPerChannel": "the sms and callout tag sets are maintained separately and neither is a subset of the other, so a tag that picks a template on sms may have no recording on callout and fall back silently. Never infer one channel's coverage from the other, and never compile either set into the client - both are SERVER data that changes without a client release",
+    "destinationEcho": "stored and echoed DIGITS-ONLY - the leading + is stripped",
+    "destinationValidation": "the validator strips only [\\s\\-()] before matching ^\\+?\\d{8,15}$, so a dot-formatted number is rejected even though normalisation would have handled it - normalise client-side before sending",
+    "bodylessRequests": "send no Content-Type header",
+    "fee": "decimal STRING, VAT-inclusive; never parse it",
+    "oneLiveVerificationPerDestination": "a start supersedes every unfinished verification for the same application and destination; the superseded row reads status failed with error_code superseded, and is reachable only by id",
+    "deniedStartDoesNotSupersede": "a start that is itself DENIED supersedes nothing, so an earlier unfinished verification stays live - and since by_number answers with the newest row whatever its status, that read returns the denied one while the live verification is reachable only by the id its own start returned",
+    "byNumberResolution": "the newest verification for that destination, whatever its status - NOT 'the live one'",
+    "finishedRetention": {
+      "hours": 24,
+      "note": "a finished verification is hard-deleted after this, so a later read by id or by number answers 404 rather than the outcome; persist anything needed beyond the window"
+    },
+    "reportBeforeDispatch": "'pending' spans a window in which a report is refused with not_ready_to_report (422): the status is already public and the row underneath it has not finished dispatching, so the code is retryable rather than terminal"
+  }
+}

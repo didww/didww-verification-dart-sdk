@@ -1,0 +1,31 @@
+name: didww_verification_sms
+description: >-
+  Android SMS Retriever support for the DIDWW verification client: automatic one-time
+  code capture and the app hash the Retriever requires. Android only.
+version: 1.0.0
+repository: https://github.com/didww/didww-verification-dart-sdk
+issue_tracker: https://github.com/didww/didww-verification-dart-sdk/issues
+
+topics: [otp, verification, sms, authentication, android]
+
+environment:
+  sdk: ^3.6.0
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  didww_verification: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.didww.didww_verification_sms
+        pluginClass: DidwwVerificationSmsPlugin
+
+resolution: workspace

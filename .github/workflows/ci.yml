@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A superseded run has nothing left to prove, so a force-push stops paying for one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Everything that runs without being asked, and nothing else. It is all Dart on Linux,
+# because that is what stays cheap enough to run on every push. The platform toolchains
+# are in native.yml and start by hand. Nothing here publishes.
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: analyze (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # The declared floor is built as well as the newest stable, so the floor is a
+        # tested claim rather than a declaration.
+        include:
+          - name: floor
+            floor: true
+            version: '3.27.0'
+          # Empty, not 'stable'. `flutter-version` takes a version number, and a
+          # channel name there fails the setup outright -- the channel below is what
+          # selects the newest stable.
+          - name: stable
+            floor: false
+            version: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.version }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      # Formatting does not depend on the SDK version, so one leg settles it.
+      - if: ${{ !matrix.floor }}
+        run: dart format --output=none --set-exit-if-changed .
+      - run: dart analyze --fatal-infos
+      # The floor leg runs the client suite too. Analyzing on the floor only ever
+      # proved it parses there; the `test` job below pins stable, so without this
+      # nothing had ever executed a test against the declared minimum.
+      - if: ${{ matrix.floor }}
+        run: dart test
+        working-directory: packages/didww_verification
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # The client package runs on the plain Dart VM. That it does is itself the
+      # strongest available evidence that it carries no Flutter dependency.
+      - run: dart test
+        working-directory: packages/didww_verification
+      - run: flutter test
+        working-directory: packages/didww_verification_sms
+      # The mock is what the integration tests and the example run against, so a broken
+      # one is a silent hole in every claim they make.
+      - run: dart run tool/mock_api/bin/mock_api.dart --self-test
+      - run: tool/mock_api/drive.sh
+      # The guards ride along here rather than in a job of their own: they need the same
+      # resolved workspace, and seconds of work alone still bills a whole minute of setup.
+      #
+      # Both halves: the manifest read catches a dependency someone typed, the
+      # resolution catches one that arrived without anyone typing it.
+      - run: dart run tool/check_zero_deps.dart
+      # The one defect a new response field causes that compiles and passes every
+      # test: a copier that rebuilds an object field by field and forgets the new one.
+      - run: dart run tool/check_field_copies.dart
+      # No `path:` dependency in a published manifest, and no ios/ in the plugin.
+      - run: dart run tool/check_package_shape.dart
+      # --public because this workflow only ever runs on the public remote, where
+      # internal/ must already be gone. Run it without the flag locally, where the
+      # directory still supplies the vocabulary.
+      - run: dart run tool/check_no_internal_refs.dart --public
+      # A second apiece, and the only automatic check that a published manifest is
+      # publishable at all. Hard-fails on a path dependency and on a missing licence.
+      - run: dart pub publish --dry-run
+        working-directory: packages/didww_verification
+      - run: dart pub publish --dry-run
+        working-directory: packages/didww_verification_sms

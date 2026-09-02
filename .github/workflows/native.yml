@@ -1,0 +1,79 @@
+name: native
+
+# Manual. Both platform toolchains are slow to set up and the iOS one bills at ten
+# times Linux, so neither runs on a push. Run this when something touched the plugin,
+# the example app, or a Gradle or Xcode file — and before a release.
+#
+# Default target is android: the plugin is Android-only, so that is the half that
+# usually matters, and it is the cheap half.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which platform to check
+        type: choice
+        options: [android, ios, both]
+        default: android
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    if: inputs.target == 'android' || inputs.target == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      # The wrapper jar is committed, so its checksum is checked against Gradle's
+      # published list before anything executes it.
+      - uses: gradle/actions/wrapper-validation@v4
+      # Caches the Gradle distribution and the dependency cache. Written from the
+      # default branch only, which is where other runs then read it from.
+      - uses: gradle/actions/setup-gradle@v4
+      - run: flutter pub get
+      - run: ./gradlew :didww_verification_sms:testDebugUnitTest
+        working-directory: packages/didww_verification_sms/example/android
+      # Over the MERGED manifest of every variant, which is the only place a
+      # permission contributed by a dependency becomes visible.
+      - run: tool/check_manifest_permissions.sh
+      - run: flutter build apk --debug
+        working-directory: packages/didww_verification_sms/example
+      # Flutter's template declares INTERNET in the debug and profile manifests
+      # only, so the release build is the one that would catch an app shipping
+      # without network.
+      - run: flutter build apk --release
+        working-directory: packages/didww_verification_sms/example
+
+  # The whole flow on a real runtime, which is the only place the device's own HTTP
+  # stack and transport security policy are in the path. Building the example for the
+  # simulator is part of it, which is also what proves an Android-only plugin does not
+  # break an iOS target. The iOS project is Swift Package Manager based, so no CocoaPods
+  # step is needed and none should be added: the plugin ships no podspec to install.
+  ios:
+    if: inputs.target == 'ios' || inputs.target == 'both'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - name: Boot a simulator
+        # Chosen from what the image actually has: a hard-coded device name goes
+        # red on the next runner image rather than on a real regression.
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin)["devices"];print([x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["name"].startswith("iPhone")][0])')
+          xcrun simctl boot "$udid"
+          echo "SIMULATOR=$udid" >> "$GITHUB_ENV"
+      - name: Drive the flow against the mock
+        # One step, because the mock has to outlive the command that starts it.
+        run: |
+          dart run tool/mock_api/bin/mock_api.dart --port 8787 &
+          for _ in $(seq 30); do nc -z localhost 8787 && break; sleep 1; done
+          cd packages/didww_verification_sms/example
+          flutter test integration_test -d "$SIMULATOR"

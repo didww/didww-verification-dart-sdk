@@ -1,0 +1,18 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+  errors:
+    public_member_api_docs: warning
+
+linter:
+  # `require_trailing_commas` is deliberately absent: dart format already
+  # decides trailing commas, and the two disagree, which produces churn.
+  rules:
+    - public_member_api_docs
+    - package_api_docs
+    - avoid_dynamic_calls
+    - prefer_final_locals
+    - unawaited_futures

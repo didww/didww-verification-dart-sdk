@@ -1,0 +1,22 @@
+name: didww_verification
+description: >-
+  Dart client for the DIDWW phone number verification API. Start a verification over SMS or
+  callout, report the value the user received, and read the outcome.
+version: 1.0.0
+repository: https://github.com/didww/didww-verification-dart-sdk
+issue_tracker: https://github.com/didww/didww-verification-dart-sdk/issues
+
+topics: [otp, verification, sms, authentication, phone]
+
+environment:
+  sdk: ^3.6.0
+
+# There is deliberately no `dependencies:` key. Adding one breaks a published guarantee.
+dev_dependencies:
+  # Held below 6.x, which needs Dart ^3.8.0. A workspace resolves every member
+  # together, dev dependencies included, so 6.x makes the declared ^3.6.0 floor
+  # unresolvable and the CI leg that tests it cannot run at all.
+  lints: ^5.1.1
+  test: ^1.25.0
+
+resolution: workspace

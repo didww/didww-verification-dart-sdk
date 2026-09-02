@@ -1,0 +1,15 @@
+# The wrapper is tracked, against the Flutter template's default. Without it a
+# fresh clone has no ./gradlew at all: the Kotlin tests, the merged-manifest
+# guard and the android CI job all invoke it directly, and only a command that
+# already runs Gradle injects one.
+/.gradle
+/captures/
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+key.properties
+**/*.keystore
+**/*.jks

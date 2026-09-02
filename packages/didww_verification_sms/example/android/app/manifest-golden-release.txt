@@ -1,0 +1,9 @@
+activity com.didww.didww_verification_sms_example.MainActivity
+activity com.google.android.gms.common.api.GoogleApiActivity
+permission com.didww.didww_verification_sms_example.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+provider androidx.startup.InitializationProvider
+receiver androidx.profileinstaller.ProfileInstallReceiver
+uses-library androidx.window.extensions
+uses-library androidx.window.sidecar
+uses-permission android.permission.INTERNET
+uses-permission com.didww.didww_verification_sms_example.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION

@@ -1,0 +1,18 @@
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+.DS_Store
+
+# Local agent/tooling state; never part of a published SDK.
+.omc/
+.claude/
+
+# One lockfile lives at the workspace root and IS committed; members must not carry their own.
+packages/*/pubspec.lock
+packages/*/example/pubspec.lock
+
+# Local Android SDK paths, never committed.
+**/android/local.properties
+**/android/.gradle/
