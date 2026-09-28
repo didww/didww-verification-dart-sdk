@@ -13,7 +13,8 @@ String _verificationJson({
   Object? sms = const {
     'template': 'Your code is {{CODE}}',
     'language': 'en-US',
-    'interception_timeout': 120
+    'interception_timeout': 120,
+    'code_length': 6,
   },
   Object? callout,
 }) {
@@ -50,6 +51,7 @@ void main() {
       expect(v.isFinished, isFalse);
       expect(v.sms?.template, 'Your code is {{CODE}}');
       expect(v.sms?.interceptionTimeoutSeconds, 120);
+      expect(v.sms?.codeLength, 6);
       expect(v.expiresAt.isUtc, isTrue);
     });
 
@@ -124,13 +126,30 @@ void main() {
         _verificationJson(
           deliveryMethod: 'callout',
           sms: null,
-          callout: const {'language': 'pt-BR'},
+          callout: const {'language': 'pt-BR', 'code_length': 8},
         ),
       );
       expect(v.callout!.language, 'pt-BR');
+      expect(v.callout!.codeLength, 8);
       expect(v.sms, isNull);
 
       expect(decodeVerification(_verificationJson()).callout, isNull);
+    });
+
+    test('a missing code length degrades rather than failing', () {
+      final sms = decodeVerification(
+        _verificationJson(sms: const {'template': 't'}),
+      ).sms;
+      expect(sms!.codeLength, isNull);
+
+      final callout = decodeVerification(
+        _verificationJson(
+          deliveryMethod: 'callout',
+          sms: null,
+          callout: const {'language': 'en-US'},
+        ),
+      ).callout;
+      expect(callout!.codeLength, isNull);
     });
 
     test('a missing interception timeout degrades rather than failing', () {

@@ -4,6 +4,28 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.1.0
+
+Released — 2026-10.
+
+- **`SmsInfo.codeLength` and `CalloutInfo.codeLength`** — how many digits the code is,
+  chosen per application on the server (4–8, default 6). A server fact, never compiled in.
+
+- **Docs and the bundled mock API corrected: the verification lifetime is per application**
+  (60–600 seconds, default 300), not the fixed 120 seconds this package used to document. No
+  code change — `expires_at` and `sms.interceptionTimeoutSeconds` were always read from the
+  response, never compiled in.
+
+- **`destinationInCooldown`** — a new `ApiErrorCode` for a start requested again too soon
+  after one for the same application and destination.
+
+- **`TooManyRequestsException`** — thrown for a 429, with `retryAfter` parsed from the
+  `Retry-After` header. `startVerification` is never retried, on this status or any other.
+
+- **Logged lines redact every run of four or more digits outside a UUID**, not just six or
+  more — ports and years go with them. A verification id stays readable, because it is never
+  a bare digit run.
+
 ## 1.0.0
 
 First public release — 2026-09.

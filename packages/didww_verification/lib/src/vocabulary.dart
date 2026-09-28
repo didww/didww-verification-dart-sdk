@@ -118,6 +118,10 @@ enum ApiErrorCode {
   /// The account cannot fund another verification.
   balanceInsufficient('balance_insufficient'),
 
+  /// A start for the same application and destination was requested too
+  /// recently; retry after the `Retry-After` header.
+  destinationInCooldown('destination_in_cooldown'),
+
   /// The request failed validation without a more specific code.
   validationFailed('validation_failed'),
 

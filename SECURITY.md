@@ -64,8 +64,9 @@ caller's, because only the caller knows whether the user is still there.
   client — `debugDiagnostic`, which runs inside an `assert` and so vanishes from a release
   build. It carries the `BasicAuthorization` warning above and a note when a language tag is
   dropped as unacceptable. The message on `SdkUnexpectedError` passes through a redactor that
-  replaces every run of six or more digits with its length, because that path can carry an
-  arbitrary error string and a by-number request path contains the destination.
+  replaces every run of four or more digits outside a UUID with its length, because that path can
+  carry an arbitrary error string, a by-number request path contains the destination, and a code is
+  4 to 8 digits. Ports and years go with them; verification ids stay readable for support.
 - **The Android plugin logs three lines**, all in the app-hash computation: two warnings that
   capture is unavailable, and the package name with its app hash at `DEBUG`. The hash is
   appended to every message and is derived from public inputs.

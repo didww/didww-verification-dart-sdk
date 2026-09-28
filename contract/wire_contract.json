@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-31",
+  "capturedAt": "2026-09-28",
   "source": "a hand-made reading of the API, not generated; see contract/README.md",
   "basePaths": {
     "production": "https://verification.didww.com",
@@ -95,6 +95,7 @@
     "not_found",
     "unauthorized",
     "balance_insufficient",
+    "destination_in_cooldown",
     "validation_failed",
     "internal_error",
     "dispatch_failed",
@@ -136,6 +137,7 @@
     "not_found": "not found",
     "unauthorized": "unauthorized",
     "balance_insufficient": "insufficient balance",
+    "destination_in_cooldown": "verification for this destination was requested too recently",
     "validation_failed": "request is invalid",
     "internal_error": "internal server error",
     "dispatch_failed": "failed to deliver",
@@ -179,7 +181,8 @@
     "required": [
       "template",
       "language",
-      "interception_timeout"
+      "interception_timeout",
+      "code_length"
     ],
     "optional": [
       "app_hash"
@@ -189,7 +192,8 @@
   "calloutBlock": {
     "presentOnlyFor": "callout",
     "required": [
-      "language"
+      "language",
+      "code_length"
     ],
     "optional": []
   },
@@ -214,13 +218,16 @@
     "402": "balance_insufficient",
     "404": "not_found",
     "422": "validation failures",
+    "429": "destination_in_cooldown",
     "500": "internal_error"
   },
   "constraints": {
     "appHashFormat": "^[A-Za-z0-9+/]{11}$",
     "codeLength": {
-      "value": 6,
-      "note": "a SERVER fact; never compile a length into the client"
+      "min": 4,
+      "max": 8,
+      "default": 6,
+      "note": "a SERVER fact, now per-application; never compile a length into the client"
     },
     "maxReportAttempts": {
       "value": 3,

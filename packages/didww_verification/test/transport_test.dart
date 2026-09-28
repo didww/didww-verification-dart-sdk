@@ -82,7 +82,11 @@ String get _verificationBody => jsonEncode({
         'error_code': null,
         'error_detail': null,
         'expires_at': '2026-08-25T12:00:00Z',
-        'sms': {'template': 'code {{CODE}}', 'interception_timeout': 120},
+        'sms': {
+          'template': 'code {{CODE}}',
+          'interception_timeout': 120,
+          'code_length': 6,
+        },
       },
     });
 
@@ -146,7 +150,7 @@ void main() {
       await silent.getVerification('ver-1');
       silent.close();
 
-      expect(loopback.headers[0]['user-agent'], 'didww_verification/1.0.0');
+      expect(loopback.headers[0]['user-agent'], 'didww_verification/1.1.0');
       expect(loopback.headers[1]['user-agent'], 'demo/1.0');
       // Explicitly null means none of ours; dart:io then supplies the runtime's,
       // so the header is never actually absent from the wire.

@@ -101,7 +101,8 @@ FakeTransport get _scripted => FakeTransport([
           'expires_at': '2026-08-25T12:00:00Z',
           'sms': {
             'template': 'Your code is {{CODE}}',
-            'interception_timeout': 120
+            'interception_timeout': 120,
+            'code_length': 6,
           },
         },
       }),
@@ -117,7 +118,8 @@ FakeTransport get _scripted => FakeTransport([
           'expires_at': '2026-08-25T12:00:00Z',
           'sms': {
             'template': 'Your code is {{CODE}}',
-            'interception_timeout': 120
+            'interception_timeout': 120,
+            'code_length': 6,
           },
         },
       }),
