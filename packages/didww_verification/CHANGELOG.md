@@ -4,6 +4,13 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## Unreleased
+
+- The default `User-Agent` changed from `didww_verification/<version>` to
+  `didww-verification-dart/<version>`.
+- `ClientConfig.userAgent` is deprecated and ignored: the SDK always sends its
+  own `User-Agent` and it can no longer be overridden or suppressed.
+
 ## 1.0.0
 
 First public release — 2026-09.

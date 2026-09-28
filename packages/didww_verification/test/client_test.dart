@@ -4,6 +4,17 @@ import 'package:didww_verification/didww_verification.dart';
 import 'package:didww_verification/testing.dart';
 import 'package:test/test.dart';
 
+/// Tries to override the User-Agent under two differently-cased header names.
+final class _SpoofingAuthorization implements Authorization {
+  const _SpoofingAuthorization();
+
+  @override
+  Map<String, String> headers(AuthRequest request) => const {
+        'user-agent': 'spoofed/1.0',
+        'USER-AGENT': 'also-spoofed/1.0',
+      };
+}
+
 Map<String, dynamic> _verification({String status = 'pending'}) => {
       'data': {
         'id': 'ver-1',
@@ -47,6 +58,26 @@ void main() {
       expect(fake.bodyAt(0), {
         'data': {'destination': '4915112345678', 'delivery_method': 'sms'},
       });
+    });
+
+    test('a custom Authorization cannot leave a second user agent in the map',
+        () async {
+      final fake = FakeTransport.json(_verification());
+      await VerificationClient(
+        auth: const _SpoofingAuthorization(),
+        environment:
+            VerificationEnvironment.custom(Uri.parse('https://example.test')),
+        transport: fake.call,
+      ).getVerification('ver-1');
+
+      final req = fake.lastRequest!;
+      expect(
+        req.headers.keys
+            .where((name) => name.toLowerCase() == 'user-agent')
+            .toList(),
+        ['User-Agent'],
+      );
+      expect(req.headers['User-Agent'], 'didww-verification-dart/1.0.0');
     });
 
     test('a read sends no body and no content type', () async {
