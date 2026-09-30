@@ -283,6 +283,7 @@ Future<Verification> startVerification({
   SmsOptions? sms,
   CalloutOptions? callout,
   String? appHash,
+  String? custom,
 });
 
 Future<Verification> getVerification(String id);
@@ -388,6 +389,25 @@ sms?.codeLength;                   // how many digits the code is, chosen per ap
 long to keep an on-device listener armed. It does not shorten the verification: manual entry keeps
 working until `expiresAt`, and running out of budget only stops listening. Do not render it as a
 timer to the user.
+
+## The `custom` value
+
+`custom` is an optional string of up to 4096 characters, passed to `startVerification` or
+`session.start`, for context your callback server can use to decide whether to allow the
+verification — the app version or a device signal, say:
+
+```dart
+await client.startVerification(
+  destination: destination,
+  deliveryMethod: DeliveryMethod.sms,
+  custom: 'app=2.4.1;platform=android',
+);
+```
+
+It is forwarded to your callback server and is **not** returned by any response, so it is not on
+`Verification`. It is sent from the device, so treat it as untrusted input and validate it on the
+callback server. An empty string counts as absent, and a longer one is rejected with `422
+custom_too_long`, which surfaces as `ApiErrorCode.customTooLong`.
 
 ## The `callout` block
 

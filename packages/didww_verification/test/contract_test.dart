@@ -229,6 +229,7 @@ void main() {
 
       expect(expected, contains('destination'));
       expect(expected, contains('delivery_method'));
+      expect(expected, contains('custom'));
       expect(data.keys.toSet(), {'destination', 'delivery_method', 'sms'});
       // The channel block is named for the channel, which is what
       // "<delivery_method> block" records.
@@ -387,6 +388,21 @@ void main() {
 
     test('the app hash format is the snapshot`s, character for character', () {
       expect(appHashFormat.pattern, constraints['appHashFormat']);
+    });
+
+    test('the custom value is sent whole, up to the snapshot`s limit',
+        () async {
+      final limit = (constraints['customMaxLength'] as Map)['value'] as int;
+      final fixture = clientWith(status: 201);
+      await fixture.client.startVerification(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+        custom: 'x' * limit,
+      );
+
+      final data = fixture.transport.bodyAt(0)['data'] as Map<String, dynamic>;
+      expect(data['custom'], hasLength(limit));
+      expect(limit, 4096);
     });
 
     test('the destination is sent as digits, so the echo can be compared',

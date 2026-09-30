@@ -44,6 +44,10 @@ final class WireContract {
         (_root['constraints'] as Map)['appHashFormat'] as String,
       );
 
+  /// The most characters the API accepts in a start's custom value.
+  int get customMaxLength =>
+      ((_root['constraints'] as Map)['customMaxLength'] as Map)['value'] as int;
+
   /// How many values may be reported before the verification fails.
   int get maxReportAttempts =>
       ((_root['constraints'] as Map)['maxReportAttempts'] as Map)['value']

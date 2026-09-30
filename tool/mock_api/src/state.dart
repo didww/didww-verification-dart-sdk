@@ -39,6 +39,7 @@ final class MockVerification {
     this.language,
     this.interceptionTimeout,
     this.appHash,
+    this.custom,
   });
 
   final String id;
@@ -61,6 +62,9 @@ final class MockVerification {
 
   final int? interceptionTimeout;
   final String? appHash;
+
+  /// Forwarded to the callback only; never part of a response.
+  final String? custom;
 
   String status;
   String? errorCode;

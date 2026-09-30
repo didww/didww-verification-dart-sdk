@@ -88,11 +88,15 @@ final class VerificationSession {
   /// which is not terminal.
   ///
   /// Never throws: every outcome arrives through [states].
+  ///
+  /// [custom] is free text of up to 4096 characters, forwarded to your callback
+  /// server. It is sent from the device, so the callback server must validate it.
   Future<void> start({
     required String destination,
     required DeliveryMethod deliveryMethod,
     SmsOptions? sms,
     CalloutOptions? callout,
+    String? custom,
   }) async {
     if (_disposed) return;
     if (_startInFlight) {
@@ -122,6 +126,7 @@ final class VerificationSession {
         sms: sms,
         callout: callout,
         appHash: appHash,
+        custom: custom,
       );
       if (_isStale(generation)) return;
       _enterLive(verification);
