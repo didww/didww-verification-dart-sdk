@@ -86,6 +86,7 @@ String verificationJson({
           'sms': {
             'template': 'Your code is {{CODE}}',
             'interception_timeout': 120,
+            'code_length': 6,
             if (appHash != null) 'app_hash': appHash,
           },
       },

@@ -3,6 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('package version matches the manifest', () {
-    expect(smsPackageVersion, '1.0.0');
+    expect(smsPackageVersion, '1.1.0');
   });
 }

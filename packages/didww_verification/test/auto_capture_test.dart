@@ -85,8 +85,8 @@ void main() {
     });
 
     test('the code length is not compiled in', () {
-      // A server fact, never a client one: a template that renders eight digits
-      // one day must not stop working.
+      // A server fact, never a client one: the length is per application, 4 to 8,
+      // and every one of them must keep working.
       expect(extractCode('code {{CODE}}', 'code 12345678'), '12345678');
       expect(extractCode('code {{CODE}}', 'code 1234'), '1234');
     });

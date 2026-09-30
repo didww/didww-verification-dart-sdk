@@ -329,7 +329,7 @@ void main() {
         () async {
       expect(
         (smsBlock['required'] as List).cast<String>(),
-        ['template', 'language', 'interception_timeout'],
+        ['template', 'language', 'interception_timeout', 'code_length'],
       );
       expect((smsBlock['optional'] as List).cast<String>(), ['app_hash']);
 
@@ -339,6 +339,7 @@ void main() {
       expect(verification.sms?.template, isNotNull);
       expect(verification.sms?.language, isNotNull);
       expect(verification.sms?.interceptionTimeoutSeconds, isNotNull);
+      expect(verification.sms?.codeLength, isNotNull);
       expect(verification.sms?.appHash, isNull);
     });
   });
@@ -360,7 +361,10 @@ void main() {
 
     test('the required member is read and there are no optional ones',
         () async {
-      expect((calloutBlock['required'] as List).cast<String>(), ['language']);
+      expect(
+        (calloutBlock['required'] as List).cast<String>(),
+        ['language', 'code_length'],
+      );
       expect(calloutBlock['optional'], isEmpty);
 
       final fixture = clientWith(
@@ -374,6 +378,7 @@ void main() {
       final verification = await fixture.client.getVerification('ver-1');
 
       expect(verification.callout?.language, 'pt-BR');
+      expect(verification.callout?.codeLength, isNotNull);
     });
   });
 
@@ -399,8 +404,7 @@ void main() {
     });
 
     test('no code length and no attempt count are compiled in', () {
-      // Both are server facts. The snapshot records them so the SDK can be
-      // checked for having taken a copy, not so it can use them.
+      // A server value may pass through; a literal length may not.
       final sources = Directory('lib/src')
           .listSync()
           .whereType<File>()
@@ -408,7 +412,10 @@ void main() {
           .join('\n');
 
       expect(sources, isNot(contains('maxAttempts')));
-      expect(sources, isNot(contains('codeLength')));
+      expect(
+        sources,
+        isNot(matches(RegExp(r'codeLength\s*(?:[:=]|\?\?)\s*\d'))),
+      );
     });
   });
 }

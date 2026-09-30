@@ -146,12 +146,16 @@ SmsInfo? _decodeSms(Object? raw, String body) {
     language: _optionalString(raw, 'language', body),
     interceptionTimeoutSeconds: _optionalInt(raw, 'interception_timeout', body),
     appHash: _optionalString(raw, 'app_hash', body),
+    codeLength: _optionalInt(raw, 'code_length', body),
   );
 }
 
 CalloutInfo? _decodeCallout(Object? raw, String body) {
   if (raw is! Map) return null;
-  return CalloutInfo(language: _optionalString(raw, 'language', body));
+  return CalloutInfo(
+    language: _optionalString(raw, 'language', body),
+    codeLength: _optionalInt(raw, 'code_length', body),
+  );
 }
 
 /// Decodes an error envelope, element by element.

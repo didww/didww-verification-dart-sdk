@@ -32,6 +32,7 @@ final class MockVerification {
     required this.expiresAt,
     required this.expectedValue,
     required this.status,
+    required this.codeLength,
     this.errorCode,
     this.errorDetail,
     this.template,
@@ -49,6 +50,9 @@ final class MockVerification {
 
   /// The code or caller ID that will be accepted.
   final String expectedValue;
+
+  /// How many digits [expectedValue] is, echoed on the sms and callout blocks.
+  final int codeLength;
 
   final String? template;
 
@@ -101,9 +105,11 @@ final class MockVerification {
             'template': template,
             'language': language,
             'interception_timeout': interceptionTimeout,
+            'code_length': codeLength,
             if (appHash != null) 'app_hash': appHash,
           },
-        if (deliveryMethod == 'callout') 'callout': {'language': language},
+        if (deliveryMethod == 'callout')
+          'callout': {'language': language, 'code_length': codeLength},
       },
     };
   }

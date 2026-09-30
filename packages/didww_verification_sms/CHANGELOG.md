@@ -4,6 +4,13 @@ Notable changes to `didww_verification_sms`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.1.0
+
+Released — 2026-10.
+
+- **Depends on `didww_verification ^1.1.0`.** No change in this package; carried for the
+  client's `code_length` and `destinationInCooldown` additions.
+
 ## 1.0.0
 
 First public release — 2026-09.
