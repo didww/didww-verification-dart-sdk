@@ -106,7 +106,7 @@ echo "--- sms: start, read, report"
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511111111","delivery_method":"sms","sms":{"languages":["en-US"],"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}}}}'
 expect 'sms start' 201 '"status":"pending"'
 expect 'the sms block names the chosen language' 201 '"language":"en-US"'
-grep -q '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}' <<<"$BODY" && echo 'ok   the app hash is echoed as autofill' && pass=$((pass + 1))
+expect 'the app hash is echoed as autofill' 201 '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}'
 SMS_ID="$(id_of)"
 req GET "$API/verifications/$SMS_ID" "$PUBLIC"; expect 'read by id' 200 '"status":"pending"'
 req GET "$API/verifications/by_number/491511111111" "$PUBLIC"; expect 'read by number' 200 "$SMS_ID"
