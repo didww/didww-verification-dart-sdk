@@ -38,6 +38,7 @@ final class SmsInfo {
     this.language,
     this.interceptionTimeoutSeconds,
     this.appHash,
+    this.codeLength,
   });
 
   /// The rendered message with its code placeholder still in place.
@@ -65,15 +66,21 @@ final class SmsInfo {
   /// that explains why automatic capture is not firing.
   final String? appHash;
 
+  /// How many digits the code is, chosen per application on the server.
+  ///
+  /// Never compile a length in; a template that renders eight digits one day
+  /// must keep working.
+  final int? codeLength;
+
   @override
-  String toString() =>
-      'SmsInfo(template: ${template != null}, appHash: $appHash)';
+  String toString() => 'SmsInfo(template: ${template != null}, '
+      'appHash: $appHash, codeLength: $codeLength)';
 }
 
 /// The `callout` block of a response, present only on the callout channel.
 final class CalloutInfo {
   /// Wraps a callout block.
-  const CalloutInfo({this.language});
+  const CalloutInfo({this.language, this.codeLength});
 
   /// The BCP 47 tag the code is announced in.
   ///
@@ -84,8 +91,12 @@ final class CalloutInfo {
   /// in this field.
   final String? language;
 
+  /// How many digits the code is, chosen per application on the server.
+  final int? codeLength;
+
   @override
-  String toString() => 'CalloutInfo(language: $language)';
+  String toString() => 'CalloutInfo(language: $language, '
+      'codeLength: $codeLength)';
 }
 
 /// A verification, as the API reports it.

@@ -316,6 +316,10 @@ VerificationClient(
 );
 ```
 
+**A start too soon after one for the same destination is rejected, not retried.** It throws
+`TooManyRequestsException` rather than being queued or spaced out for you; wait for
+`retryAfter` before letting the caller try again.
+
 ## Phone numbers
 
 Every destination is normalised to digits before it is sent: `'+49 (151) 1234-567'` goes out as
@@ -375,7 +379,10 @@ sms?.template;                     // the message with its placeholder still in 
 sms?.language;                     // the tag the API chose, which may not be the one you asked for
 sms?.interceptionTimeoutSeconds;   // how long to keep a listener armed
 sms?.appHash;                      // what the API stored, absent if nothing was stored
+sms?.codeLength;                   // how many digits the code is, chosen per application
 ```
+
+`codeLength` is a server fact, chosen per application — never compile a length into the client.
 
 **`interceptionTimeoutSeconds` is a budget, not a deadline and not a countdown.** It says how
 long to keep an on-device listener armed. It does not shorten the verification: manual entry keeps
@@ -403,6 +410,7 @@ On the response, `Verification.callout` is non-null exactly on the callout chann
 
 ```dart
 verification.callout?.language;    // the tag the announcement is played in
+verification.callout?.codeLength;  // how many digits the code is, chosen per application
 ```
 
 **The two channels have separate language sets, and neither is a subset of the other.** A tag that
@@ -450,10 +458,16 @@ Everything the SDK throws descends from `VerificationException`, which is `seale
 | `DecodingException` | A response arrived that was not the documented shape. |
 | `ApiException` | The API answered with an error envelope. |
 
-`ApiException` has five status-specific subtypes — `UnauthorizedException` (401),
-`BalanceInsufficientException` (402), `NotFoundException` (404), `ValidationException` (400/422)
-and `ServerException` (5xx). A status with none of its own arrives as a plain `ApiException`
-rather than a decode failure.
+`ApiException` has six status-specific subtypes — `UnauthorizedException` (401),
+`BalanceInsufficientException` (402), `NotFoundException` (404), `ValidationException` (400/422),
+`TooManyRequestsException` (429) and `ServerException` (5xx). A status with none of its own
+arrives as a plain `ApiException` rather than a decode failure.
+
+**`TooManyRequestsException`** is thrown for `destination_in_cooldown` — a start requested again
+too soon after one for the same application and destination. Its `retryAfter` is the
+`Retry-After` header, parsed as a `Duration`; it is `null` if the header was absent or not a
+plain integer. `startVerification` is never retried, on this status or any other — see
+[Retries](#retries).
 
 **Switch on the code, not on the prose.** `detail` is fixed English wording that exists for logs;
 `code` is the contract:
@@ -552,8 +566,9 @@ dart pub deps --style=compact
 ## Logging
 
 `ClientConfig.logger` receives one line per request — method, path and status, never a body and
-never a header. Digit runs of six or more are replaced with their length first, so a by-number
-path cannot put a destination in your logs.
+never a header. Digit runs of four or more outside a UUID are replaced with their length first, so
+neither a by-number path nor a code — 4 to 8 digits, chosen by the server — reaches your logs, while
+a verification id stays readable.
 
 ## Licence
 

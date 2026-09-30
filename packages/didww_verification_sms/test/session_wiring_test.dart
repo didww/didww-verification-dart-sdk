@@ -30,6 +30,7 @@ String verificationJson({String? appHash, String status = 'pending'}) =>
         'sms': {
           'template': 'Your code is {{CODE}}',
           'interception_timeout': 120,
+          'code_length': 6,
           if (appHash != null) 'app_hash': appHash,
         },
       },

@@ -118,27 +118,27 @@ expect 'report by number' 200 '"status":"verified"'
 
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333333","delivery_method":"callout"}}'
 expect 'callout start' 201 '"delivery_method":"callout"'
-expect 'a callout with no languages gets the default' 201 '"callout":{"language":"en-US"}'
+expect 'a callout with no languages gets the default' 201 '"callout":{"language":"en-US","code_length":6}'
 req PATCH "$API/verifications/by_number/491513333333" "$PUBLIC" '{"data":{"delivery_method":"callout","code":"123456"}}'
 expect 'PATCH is accepted as well as PUT' 200 '"status":"verified"'
 
 echo "--- callout: language choice"
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333001","delivery_method":"callout","callout":{"languages":["pt-BR"]}}}'
-expect 'a servable tag is used' 201 '"callout":{"language":"pt-BR"}'
+expect 'a servable tag is used' 201 '"callout":{"language":"pt-BR","code_length":6}'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333002","delivery_method":"callout","callout":{"languages":["pt-br"]}}}'
-expect 'the echoed tag is canonical, not the spelling sent' 201 '"callout":{"language":"pt-BR"}'
+expect 'the echoed tag is canonical, not the spelling sent' 201 '"callout":{"language":"pt-BR","code_length":6}'
 # The whole point of the echo: an unservable tag is accepted, so nothing but
 # this field says the announcement is in another language than the one asked for.
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333003","delivery_method":"callout","callout":{"languages":["sq-AL","de-DE"]}}}'
-expect 'the first servable tag wins over an earlier unservable one' 201 '"callout":{"language":"de-DE"}'
+expect 'the first servable tag wins over an earlier unservable one' 201 '"callout":{"language":"de-DE","code_length":6}'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333004","delivery_method":"callout","callout":{"languages":["sq-AL"]}}}'
-expect 'an unservable tag falls back rather than failing' 201 '"callout":{"language":"en-US"}'
+expect 'an unservable tag falls back rather than failing' 201 '"callout":{"language":"en-US","code_length":6}'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333005","delivery_method":"callout","callout":{"languages":["not a tag"]}}}'
 expect 'a malformed callout tag is rejected' 422 'languages_invalid'
 # Only the block named after the delivery method is read, so a broken block for
 # another channel is ignored rather than failing a paid start.
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333006","delivery_method":"callout","sms":{"languages":["not a tag"],"app_hash":"tooshort"},"callout":{"languages":["de-DE"]}}}'
-expect 'a broken sms block on a callout start is ignored' 201 '"callout":{"language":"de-DE"}'
+expect 'a broken sms block on a callout start is ignored' 201 '"callout":{"language":"de-DE","code_length":6}'
 
 echo "--- supersede on a second start"
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491514444444","delivery_method":"sms"}}'

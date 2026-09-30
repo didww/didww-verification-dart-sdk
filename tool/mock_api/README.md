@@ -68,7 +68,8 @@ Specifically:
 - The callback is asked on every authentication scheme. The real API's rule for when
   authorization is delegated to a callback is not modelled.
 - No rate limits, no delivery, no billing, no persistence — state lives for the life of
-  the process.
+  the process. Specifically, the real API's 30 s per-destination cooldown (`429
+  destination_in_cooldown`) is not implemented; a start against the mock never gets one.
 
 ## The bundled hash
 

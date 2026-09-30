@@ -27,6 +27,7 @@ String verificationJson({
   String? language = 'en-US',
   String? template = 'Your code is {{CODE}}',
   int? interceptionTimeout = 120,
+  int? codeLength = 6,
   String? appHash,
   DateTime? expiresAt,
 }) =>
@@ -47,9 +48,11 @@ String verificationJson({
             'template': template,
             'language': language,
             'interception_timeout': interceptionTimeout,
+            'code_length': codeLength,
             if (appHash != null) 'app_hash': appHash,
           },
-        if (callout) 'callout': {'language': language},
+        if (callout)
+          'callout': {'language': language, 'code_length': codeLength},
       },
     });
 

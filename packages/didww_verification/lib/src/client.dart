@@ -210,6 +210,7 @@ final class VerificationClient {
       status: response.status,
       errors: decodeErrors(response.body),
       responseBody: response.body,
+      headers: response.headers,
     );
   }
 

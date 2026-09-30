@@ -25,7 +25,11 @@ Map<String, dynamic> _verification({String status = 'pending'}) => {
         'error_code': null,
         'error_detail': null,
         'expires_at': '2026-08-25T12:00:00Z',
-        'sms': {'template': 'code {{CODE}}', 'interception_timeout': 120},
+        'sms': {
+          'template': 'code {{CODE}}',
+          'interception_timeout': 120,
+          'code_length': 6,
+        },
       },
     };
 
@@ -77,7 +81,7 @@ void main() {
             .toList(),
         ['User-Agent'],
       );
-      expect(req.headers['User-Agent'], 'didww-verification-dart/1.0.0');
+      expect(req.headers['User-Agent'], 'didww-verification-dart/1.1.0');
     });
 
     test('a read sends no body and no content type', () async {
@@ -283,6 +287,99 @@ void main() {
       await check(402, isA<BalanceInsufficientException>());
       await check(404, isA<NotFoundException>());
       await check(422, isA<ValidationException>());
+    });
+
+    test('429 becomes TooManyRequestsException with Retry-After parsed',
+        () async {
+      final fake = FakeTransport([
+        HttpResponse(
+          status: 429,
+          headers: const {'retry-after': '17'},
+          body: jsonEncode({
+            'errors': [
+              {
+                'code': 'destination_in_cooldown',
+                'detail': 'verification for this destination was requested '
+                    'too recently',
+              },
+            ],
+          }),
+        ),
+      ]);
+      await expectLater(
+        _client(fake).getVerification('ver-1'),
+        throwsA(
+          isA<TooManyRequestsException>()
+              .having((e) => e.status, 'status', 429)
+              .having((e) => e.retryAfter, 'retryAfter',
+                  const Duration(seconds: 17))
+              .having((e) => e.has(ApiErrorCode.destinationInCooldown),
+                  'has(destinationInCooldown)', isTrue),
+        ),
+      );
+    });
+
+    test('retryAfter is null unless the header is a plain whole number',
+        () async {
+      Future<void> check(Map<String, String> headers) async {
+        final fake = FakeTransport([
+          HttpResponse(
+            status: 429,
+            headers: headers,
+            body: jsonEncode({
+              'errors': [
+                {'code': 'destination_in_cooldown', 'detail': 'too soon'},
+              ],
+            }),
+          ),
+        ]);
+        await expectLater(
+          _client(fake).getVerification('ver-1'),
+          throwsA(
+            isA<TooManyRequestsException>()
+                .having((e) => e.retryAfter, 'retryAfter', isNull),
+          ),
+        );
+      }
+
+      await check(const {}); // header absent
+      await check(const {'retry-after': '-5'}); // negative
+      await check(const {'retry-after': '1.5'}); // not whole
+      await check(const {'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT'});
+      await check(const {
+        'retry-after': '9007199255'
+      }); // past what Duration holds exactly
+      await check(
+          const {'retry-after': '99999999999999999999999'}); // beyond int
+    });
+
+    test('a 429 on start is surfaced once and never retried', () async {
+      final fake = FakeTransport([
+        HttpResponse(
+          status: 429,
+          headers: const {'retry-after': '30'},
+          body: jsonEncode({
+            'errors': [
+              {'code': 'destination_in_cooldown', 'detail': 'too soon'},
+            ],
+          }),
+        ),
+      ]);
+      final client = _client(
+        fake,
+        config: const ClientConfig(
+          retry: RetryPolicy(attempts: 5, baseDelay: Duration.zero),
+        ),
+      );
+
+      await expectLater(
+        client.startVerification(
+          destination: '491511234567',
+          deliveryMethod: DeliveryMethod.sms,
+        ),
+        throwsA(isA<TooManyRequestsException>()),
+      );
+      expect(fake.callCount, 1);
     });
 
     test('an unmapped status is still a usable answer', () async {

@@ -189,9 +189,10 @@ final class MockApi {
         expiresAt: DateTime.now().toUtc().add(state.ttl),
         expectedValue: state.code,
         status: 'pending',
+        codeLength: state.code.length,
         template: method == 'sms' ? 'Your code is {{CODE}}' : null,
         language: _resolveLanguage(languages),
-        interceptionTimeout: method == 'sms' ? 120 : null,
+        interceptionTimeout: method == 'sms' ? state.ttl.inSeconds : null,
         appHash: appHash,
       ),
     );

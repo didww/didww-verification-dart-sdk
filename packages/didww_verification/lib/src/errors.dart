@@ -130,14 +130,49 @@ final class ServerException extends ApiException {
   });
 }
 
+/// A start was requested again too soon after one for the same application
+/// and destination.
+final class TooManyRequestsException extends ApiException {
+  /// Wraps a 429 envelope.
+  const TooManyRequestsException(
+    super.message, {
+    required super.status,
+    required super.errors,
+    required super.responseBody,
+    this.retryAfter,
+  });
+
+  /// How long to wait before starting again, parsed from `Retry-After`.
+  ///
+  /// Null when the header was absent or not a whole number of seconds.
+  final Duration? retryAfter;
+}
+
+final RegExp _wholeSeconds = RegExp(r'^\d+$');
+
+// Duration stores microseconds; this keeps them exact on the web (2^53) too.
+const int _maxRetryAfterSeconds = 9007199254;
+
+/// The whole-second delay in a lower-cased `retry-after` header, or null when
+/// absent, not a plain non-negative integer (never an HTTP date), or too large
+/// to represent. Shape is checked first: `int.tryParse` alone accepts a `-`.
+Duration? _retryAfter(Map<String, String>? headers) {
+  final value = headers?['retry-after']?.trim();
+  if (value == null || !_wholeSeconds.hasMatch(value)) return null;
+  final seconds = int.tryParse(value);
+  if (seconds == null || seconds > _maxRetryAfterSeconds) return null;
+  return Duration(seconds: seconds);
+}
+
 /// Builds the exception for [status], carrying [errors].
 ///
 /// A status with no subtype becomes a plain [ApiException], never a decode
-/// failure.
+/// failure. [headers] is read only for 429's `Retry-After`.
 ApiException apiExceptionFor({
   required int status,
   required List<ApiErrorItem> errors,
   required String responseBody,
+  Map<String, String>? headers,
 }) {
   final message = errors.isEmpty
       ? 'the API returned $status'
@@ -167,6 +202,13 @@ ApiException apiExceptionFor({
         status: status,
         errors: errors,
         responseBody: responseBody,
+      ),
+    429 => TooManyRequestsException(
+        message,
+        status: status,
+        errors: errors,
+        responseBody: responseBody,
+        retryAfter: _retryAfter(headers),
       ),
     >= 500 && < 600 => ServerException(
         message,

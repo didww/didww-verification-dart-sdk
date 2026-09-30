@@ -2,7 +2,7 @@ name: didww_verification
 description: >-
   Dart client for the DIDWW phone number verification API. Start a verification over SMS or
   callout, report the value the user received, and read the outcome.
-version: 1.0.0
+version: 1.1.0
 repository: https://github.com/didww/didww-verification-dart-sdk
 issue_tracker: https://github.com/didww/didww-verification-dart-sdk/issues
 

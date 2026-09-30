@@ -82,7 +82,11 @@ String get _verificationBody => jsonEncode({
         'error_code': null,
         'error_detail': null,
         'expires_at': '2026-08-25T12:00:00Z',
-        'sms': {'template': 'code {{CODE}}', 'interception_timeout': 120},
+        'sms': {
+          'template': 'code {{CODE}}',
+          'interception_timeout': 120,
+          'code_length': 6,
+        },
       },
     });
 
@@ -151,7 +155,7 @@ void main() {
       // Neither a custom value nor an explicit null changes what goes on the
       // wire: the SDK always sends its own User-Agent.
       for (final headers in loopback.headers) {
-        expect(headers['user-agent'], 'didww-verification-dart/1.0.0');
+        expect(headers['user-agent'], 'didww-verification-dart/1.1.0');
       }
     });
   });
