@@ -158,6 +158,25 @@ void main() {
         expect(headers['user-agent'], 'didww-verification-dart/1.1.0');
       }
     });
+
+    test('the transport itself sets the SDK user agent', () async {
+      final loopback = await _Loopback.start(body: _verificationBody);
+      addTearDown(loopback.close);
+      final transport = IOHttpTransport();
+      addTearDown(transport.close);
+
+      await transport.send(
+        HttpRequest(
+          method: 'GET',
+          url: loopback.origin.resolve('/api/v1/verifications/ver-1'),
+          path: '/api/v1/verifications/ver-1',
+          headers: const {'User-Agent': 'custom/1.0'},
+        ),
+      );
+
+      expect(loopback.headers.single['user-agent'],
+          'didww-verification-dart/1.1.0');
+    });
   });
 
   group('failures that never produce a response', () {
