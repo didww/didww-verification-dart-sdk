@@ -53,7 +53,9 @@ void main() {
       await _start(fixture.session);
 
       final data = fixture.transport.bodyAt(0)['data'] as Map<String, dynamic>;
-      expect(data['sms'], {'app_hash': _hash});
+      expect(data['sms'], {
+        'autofill': {'type': 'app_hash', 'value': _hash},
+      });
       expect(fixture.session.hasAutoCapture, isTrue);
       expect(fixture.session.isAutoCaptureArmed, isTrue);
       expect(fixture.capture.listens, 1);
@@ -79,6 +81,25 @@ void main() {
 
       expect(fixture.session.isAutoCaptureArmed, isFalse);
       expect(fixture.capture.listens, 0);
+    });
+
+    test('an echo of another autofill type never subscribes', () async {
+      final capture = FakeAutoCapture(hash: _hash);
+      final transport = FakeTransport([
+        created(verificationJson(
+          autofill: const {'type': 'something_new', 'value': _hash},
+        )),
+      ]);
+      final session = VerificationSession(
+        client: clientOver(transport.call),
+        autoCapture: capture,
+      );
+      addTearDown(session.dispose);
+
+      await _start(session);
+
+      expect(session.isAutoCaptureArmed, isFalse);
+      expect(capture.listens, 0);
     });
 
     test('a malformed device hash is dropped, and the start still succeeds',

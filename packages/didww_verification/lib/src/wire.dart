@@ -71,7 +71,7 @@ Map<String, dynamic> startBody({
 
     if (appHash != null) {
       if (appHashFormat.hasMatch(appHash)) {
-        block['app_hash'] = appHash;
+        block['autofill'] = {'type': 'app_hash', 'value': appHash};
       } else {
         // Dropped, not sent: the API rejects a malformed hash and fails the
         // whole verification. Omitting it costs automatic capture only.
@@ -145,9 +145,21 @@ SmsInfo? _decodeSms(Object? raw, String body) {
     template: _optionalString(raw, 'template', body),
     language: _optionalString(raw, 'language', body),
     interceptionTimeoutSeconds: _optionalInt(raw, 'interception_timeout', body),
-    appHash: _optionalString(raw, 'app_hash', body),
+    autofill: _decodeAutofill(raw['autofill'], body),
     codeLength: _optionalInt(raw, 'code_length', body),
   );
+}
+
+SmsAutofill? _decodeAutofill(Object? raw, String body) {
+  if (raw == null) return null;
+  if (raw is! Map) {
+    throw DecodingException('sms.autofill is not an object', body: body);
+  }
+  final type = raw['type'];
+  if (type is! String) {
+    throw DecodingException('sms.autofill has no type', body: body);
+  }
+  return SmsAutofill(type: type, value: _optionalString(raw, 'value', body));
 }
 
 CalloutInfo? _decodeCallout(Object? raw, String body) {

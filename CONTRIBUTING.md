@@ -85,7 +85,7 @@ the meaning.
 
 A comment earns its place only when it records something the code cannot show:
 
-- a wire invariant — a request with no body sends no `Content-Type`; the app hash is
+- a wire invariant — a request with no body sends no `Content-Type`; the autofill block is
   omitted when absent, so its presence reflects what was stored rather than what was asked
   for;
 - a silent failure mode — the certificate rule behind the app hash; the four-argument

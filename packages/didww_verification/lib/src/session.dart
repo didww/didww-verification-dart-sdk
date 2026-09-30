@@ -334,7 +334,8 @@ final class VerificationSession {
     if (capture == null || expected == null) return;
     // The echo gate: an absent or differing hash means the API would not
     // address a message to this build, so the platform listener is never armed.
-    if (verification.sms?.appHash != expected) return;
+    final echo = verification.sms?.autofill;
+    if (echo?.type != 'app_hash' || echo?.value != expected) return;
 
     _template = verification.sms?.template;
     _capture = capture.messages().listen(_onMessage);

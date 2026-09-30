@@ -200,8 +200,8 @@ the user anything. `isAutoCaptureArmed` is true only once capture is actually ru
 current verification.
 
 **Capture arms only when the API echoes back the same app hash the device computed.** The hash is
-computed before the start request and sent with it; if the response's `sms.appHash` is absent or
-different, the platform listener is never touched. On a resume the hash is computed and compared
+computed before the start request and sent with it; if the response's `sms.autofill` is absent or
+carries a different hash, the platform listener is never touched. On a resume the hash is computed and compared
 but **never sent**, which is what lets a resumed SMS verification keep capturing.
 
 > **The trap.** Play App Signing re-signs your upload artifact, so a hash computed from a locally
@@ -215,7 +215,7 @@ first. Running out of budget only stops listening: manual entry stays live, beca
 the API's decision and arrives on the next response.
 
 A capture that reports a malformed hash, or throws while reading one, is **dropped**: the start
-goes out with no `app_hash` and is otherwise identical to one that never had a hash. A bug in an
+goes out with no `autofill` and is otherwise identical to one that never had a hash. A bug in an
 optional convenience must not fail an operation you are billed for.
 
 ### Calls that cannot go wrong
@@ -364,12 +364,13 @@ Two different outcomes, worth keeping apart:
 Tags are matched **exactly**, most preferred first: `pl` does not match `pl-PL`. The response names
 the tag that was actually used — see `sms.language` below.
 
-`app_hash` is not part of `SmsOptions`. It is a property of the installed Android build, not a
+The app hash is not part of `SmsOptions`. It is a property of the installed Android build, not a
 choice a caller makes, and a malformed one fails the whole verification — so it is supplied by
 the capture implementation and validated before it reaches the wire. `startVerification` takes an
-`appHash` parameter for that path; a value that is not eleven characters of `[A-Za-z0-9+/]` is
-**dropped**, and the request goes out identical to one that never carried a hash. Losing autofill
-beats failing a paid verification.
+`appHash` parameter for that path and sends it as `sms.autofill: {"type": "app_hash", "value":
+...}`; a value that is not eleven characters of `[A-Za-z0-9+/]` is **dropped**, and the request
+goes out identical to one that never carried a hash. Losing autofill beats failing a paid
+verification. With no hash, `autofill` is omitted and the application's default applies.
 
 On the response, `Verification.sms` is non-null exactly on the sms channel:
 
@@ -378,9 +379,13 @@ final sms = verification.sms;
 sms?.template;                     // the message with its placeholder still in it
 sms?.language;                     // the tag the API chose, which may not be the one you asked for
 sms?.interceptionTimeoutSeconds;   // how long to keep a listener armed
-sms?.appHash;                      // what the API stored, absent if nothing was stored
+sms?.autofill;                     // the marker the API stored, absent if nothing was stored
 sms?.codeLength;                   // how many digits the code is, chosen per application
 ```
+
+`autofill` is an `SmsAutofill`: `type` is `app_hash` today and stays a string, so a marker type
+added on the server later still decodes; `value` is the hash. `sms.appHash` is deprecated and
+returns `autofill.value` when the type is `app_hash`.
 
 `codeLength` is a server fact, chosen per application — never compile a length into the client.
 

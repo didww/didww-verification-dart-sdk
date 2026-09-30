@@ -85,6 +85,9 @@ enum ApiErrorCode {
   /// One or more requested template languages are not valid tags.
   languagesInvalid('languages_invalid'),
 
+  /// The autofill block is malformed or names a type the API does not accept.
+  autofillInvalid('autofill_invalid'),
+
   /// The supplied app hash is not eleven characters of the accepted alphabet.
   appHashInvalid('app_hash_invalid'),
 
