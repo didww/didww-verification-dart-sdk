@@ -8,8 +8,9 @@ Manual. Nothing here is automated, and nothing publishes from CI.
 3. Run the `native` workflow by hand (`target: both`). Neither platform toolchain runs on a
    push, so this is the only check that the Kotlin tests, the merged-manifest permission
    assertion and both platform builds still pass.
-4. Run the `pub score` workflow, or `dart run pana` locally in each package directory; every
-   scored category at full marks for both packages.
+4. Run the `pub score` workflow, or locally `dart pub global activate pana` and then
+   `dart pub global run pana --no-warning packages/<name>` for each package; every scored
+   category at full marks for both packages.
 5. `dart pub publish --dry-run` in each package. A missing `LICENSE` is a hard block, not
    a warning.
 6. One manual run against the sandbox environment. Nothing in CI reaches a live API, so
