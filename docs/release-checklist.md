@@ -12,10 +12,8 @@ Manual. Nothing here is automated, and nothing publishes from CI.
    marks for both packages.
 5. `dart pub publish --dry-run` in each package. A missing `LICENSE` is a hard block, not
    a warning.
-6. Confirm both package names are still available on pub.dev. There is no way to reserve
-   one, so this is a re-check on the day, never a guarantee.
-7. One manual run against the sandbox environment. Nothing in CI reaches a live API, so
+6. One manual run against the sandbox environment. Nothing in CI reaches a live API, so
    this is the only check that can catch a misreading of the wire contract.
-8. Publish the client package first; the plugin depends on it by version constraint and
+7. Publish the client package first; the plugin depends on it by version constraint and
    cannot resolve until it is up.
-9. Tag, and write the changelog by hand.
+8. Tag, and write the changelog by hand.
