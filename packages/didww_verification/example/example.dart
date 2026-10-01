@@ -22,7 +22,6 @@ void main() async {
     environment: baseUrl == null
         ? null
         : VerificationEnvironment.custom(Uri.parse(baseUrl)),
-    config: const ClientConfig(userAgent: 'didww_verification-example/1.0.0'),
     transport: key == null ? _scripted.call : null,
   );
 

@@ -34,8 +34,8 @@ final class RetryPolicy {
   final Duration baseDelay;
 }
 
-/// What the SDK identifies itself as when no other value is configured.
-const String defaultUserAgent = 'didww_verification/$packageVersion';
+/// What the SDK sends as `User-Agent` on every request.
+const String defaultUserAgent = 'didww-verification-dart/$packageVersion';
 
 /// Client-wide settings.
 final class ClientConfig {
@@ -57,10 +57,12 @@ final class ClientConfig {
   /// How often a read may be retried.
   final RetryPolicy retry;
 
-  /// Sent as `User-Agent`. Pass null to send none.
-  ///
-  /// Defaults to [defaultUserAgent] so SDK version adoption is visible in the
-  /// API's own logs; the runtime otherwise supplies its own opaque value.
+  /// Deprecated and ignored: the SDK always sends [defaultUserAgent] as
+  /// `User-Agent`, regardless of this value.
+  @Deprecated(
+    'Ignored: the SDK always sends its own User-Agent. Will be removed in '
+    'the next major version.',
+  )
   final String? userAgent;
 
   /// Receives one line per request when set.

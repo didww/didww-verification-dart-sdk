@@ -128,7 +128,7 @@ void main() {
       });
     });
 
-    test('a configured user agent replaces the default one', () async {
+    test('the configured user agent is ignored', () async {
       final loopback = await _Loopback.start(body: _verificationBody);
       addTearDown(loopback.close);
 
@@ -138,6 +138,7 @@ void main() {
 
       final named = _client(
         loopback.origin,
+        // ignore: deprecated_member_use_from_same_package
         config: const ClientConfig(userAgent: 'demo/1.0'),
       );
       await named.getVerification('ver-1');
@@ -145,16 +146,36 @@ void main() {
 
       final silent = _client(
         loopback.origin,
+        // ignore: deprecated_member_use_from_same_package
         config: const ClientConfig(userAgent: null),
       );
       await silent.getVerification('ver-1');
       silent.close();
 
-      expect(loopback.headers[0]['user-agent'], 'didww_verification/1.1.0');
-      expect(loopback.headers[1]['user-agent'], 'demo/1.0');
-      // Explicitly null means none of ours; dart:io then supplies the runtime's,
-      // so the header is never actually absent from the wire.
-      expect(loopback.headers[2]['user-agent'], startsWith('Dart/'));
+      // Neither a custom value nor an explicit null changes what goes on the
+      // wire: the SDK always sends its own User-Agent.
+      for (final headers in loopback.headers) {
+        expect(headers['user-agent'], 'didww-verification-dart/1.1.0');
+      }
+    });
+
+    test('the transport itself sets the SDK user agent', () async {
+      final loopback = await _Loopback.start(body: _verificationBody);
+      addTearDown(loopback.close);
+      final transport = IOHttpTransport();
+      addTearDown(transport.close);
+
+      await transport.send(
+        HttpRequest(
+          method: 'GET',
+          url: loopback.origin.resolve('/api/v1/verifications/ver-1'),
+          path: '/api/v1/verifications/ver-1',
+          headers: const {'User-Agent': 'custom/1.0'},
+        ),
+      );
+
+      expect(loopback.headers.single['user-agent'],
+          'didww-verification-dart/1.1.0');
     });
   });
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'config.dart';
 import 'errors.dart';
 import 'transport.dart';
 
@@ -54,6 +55,9 @@ final class IOHttpTransport implements OwnedTransport {
     final req = await _client.openUrl(request.method, request.url);
     onOpen(req);
     request.headers.forEach(req.headers.set);
+    // After the copy, so a request sent through this transport directly still
+    // identifies the SDK.
+    req.headers.set(HttpHeaders.userAgentHeader, defaultUserAgent);
 
     final body = request.body;
     if (body != null) {

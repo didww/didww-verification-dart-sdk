@@ -160,7 +160,6 @@ final class VerificationClient {
     final headers = <String, String>{
       'Accept': _jsonContentType,
       if (encoded != null) 'Content-Type': _jsonContentType,
-      if (config.userAgent != null) 'User-Agent': config.userAgent!,
     };
     headers.addAll(
       _auth.headers(
@@ -172,6 +171,10 @@ final class VerificationClient {
         ),
       ),
     );
+    // Any casing: header names are case-insensitive, and a custom
+    // [Authorization] must not add or replace it.
+    headers.removeWhere((name, _) => name.toLowerCase() == 'user-agent');
+    headers['User-Agent'] = defaultUserAgent;
 
     final request = HttpRequest(
       method: method,
