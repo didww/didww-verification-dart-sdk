@@ -84,6 +84,7 @@
     "delivery_method_inclusion",
     "delivery_method_invalid",
     "languages_invalid",
+    "autofill_invalid",
     "app_hash_invalid",
     "code_blank",
     "code_value_present",
@@ -126,6 +127,7 @@
     "delivery_method_inclusion": "delivery method is not included in the list",
     "delivery_method_invalid": "delivery method is invalid",
     "languages_invalid": "languages are invalid",
+    "autofill_invalid": "autofill is invalid",
     "app_hash_invalid": "app hash is invalid",
     "code_blank": "code can't be blank",
     "code_value_present": "code must be blank",
@@ -185,9 +187,9 @@
       "code_length"
     ],
     "optional": [
-      "app_hash"
+      "autofill"
     ],
-    "note": "template is kept when null; app_hash is omitted entirely when none was stored"
+    "note": "template is kept when null; autofill is omitted entirely when none was stored, and is {\"type\": \"app_hash\", \"value\": \"<hash>\"} when one was; the response also carries the deprecated app_hash with the same value, which the client does not read"
   },
   "calloutBlock": {
     "presentOnlyFor": "callout",
@@ -222,6 +224,13 @@
     "500": "internal_error"
   },
   "constraints": {
+    "autofill": {
+      "types": [
+        "app_hash",
+        "none"
+      ],
+      "note": "sent as sms.autofill: {\"type\": \"app_hash\", \"value\": <appHashFormat>} or {\"type\": \"none\"}; omitted or null takes the application default. A malformed block - not an object, an extra key, an unknown type, app_hash without a string value, any value with none - is 422 autofill_invalid; a value outside appHashFormat is 422 app_hash_invalid. The deprecated flat sms.app_hash is read only when autofill is absent; a request with both a non-null autofill and a non-null app_hash is 422 autofill_invalid, so the client never sends app_hash"
+    },
     "appHashFormat": "^[A-Za-z0-9+/]{11}$",
     "codeLength": {
       "min": 4,

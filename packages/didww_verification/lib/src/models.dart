@@ -30,6 +30,31 @@ final class ApiErrorItem {
   String toString() => 'ApiErrorItem($code)';
 }
 
+/// How the API marks the sms for on-device autofill.
+final class SmsAutofill {
+  /// Wraps an autofill block.
+  const SmsAutofill({required this.type, this.value});
+
+  /// The marker type: `app_hash` for the Android SMS Retriever.
+  ///
+  /// A string rather than an enum, so a type added on the server later still
+  /// decodes instead of failing the response.
+  final String type;
+
+  /// The app hash when [type] is `app_hash`; null for a type without a value.
+  final String? value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SmsAutofill && other.type == type && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(type, value);
+
+  @override
+  String toString() => 'SmsAutofill($type, $value)';
+}
+
 /// The `sms` block of a response, present only on the sms channel.
 final class SmsInfo {
   /// Wraps an sms block.
@@ -37,9 +62,11 @@ final class SmsInfo {
     this.template,
     this.language,
     this.interceptionTimeoutSeconds,
-    this.appHash,
+    this.autofill,
+    @Deprecated('Use autofill instead.') String? appHash,
     this.codeLength,
-  });
+  })  : assert(autofill == null || appHash == null),
+        _appHash = appHash;
 
   /// The rendered message with its code placeholder still in place.
   ///
@@ -60,11 +87,21 @@ final class SmsInfo {
   /// this is set.
   final int? interceptionTimeoutSeconds;
 
+  /// The autofill marker the API stored, absent when none was stored.
+  ///
+  /// Comparing its value against the hash the device computed is the one
+  /// diagnostic that explains why automatic capture is not firing.
+  final SmsAutofill? autofill;
+
+  final String? _appHash;
+
   /// The app hash the API stored, absent when none was stored.
   ///
-  /// Comparing it against the hash the device computed is the one diagnostic
-  /// that explains why automatic capture is not firing.
-  final String? appHash;
+  /// Deprecated: read [autofill] instead.
+  @Deprecated('Use autofill instead.')
+  String? get appHash => autofill == null
+      ? _appHash
+      : (autofill?.type == 'app_hash' ? autofill?.value : null);
 
   /// How many digits the code is, chosen per application on the server.
   ///
@@ -74,7 +111,7 @@ final class SmsInfo {
 
   @override
   String toString() => 'SmsInfo(template: ${template != null}, '
-      'appHash: $appHash, codeLength: $codeLength)';
+      'autofill: $autofill, codeLength: $codeLength)';
 }
 
 /// The `callout` block of a response, present only on the callout channel.

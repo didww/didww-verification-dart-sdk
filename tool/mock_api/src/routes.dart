@@ -161,12 +161,33 @@ final class MockApi {
           languages = requested.cast<String>();
         }
       }
-      final hash = block['app_hash'];
-      if (hash != null) {
-        if (hash is! String || !contract.appHashFormat.hasMatch(hash)) {
-          failures.add('app_hash_invalid');
+      final autofill = block['autofill'];
+      final legacyHash = block['app_hash'];
+      if (autofill != null && legacyHash != null) {
+        failures.add('autofill_invalid');
+      } else if (autofill == null && legacyHash != null) {
+        if (legacyHash is String &&
+            contract.appHashFormat.hasMatch(legacyHash)) {
+          appHash = legacyHash;
         } else {
-          appHash = hash;
+          failures.add('app_hash_invalid');
+        }
+      } else if (autofill != null) {
+        final type = autofill is Map ? autofill['type'] : null;
+        final keys = autofill is Map ? autofill.keys.toSet() : null;
+        final hash = autofill is Map ? autofill['value'] : null;
+        if (type == 'none' && keys!.length == 1) {
+          // No marker, which is also what an omitted autofill means here.
+        } else if (type == 'app_hash' &&
+            hash is String &&
+            keys!.difference({'type', 'value'}).isEmpty) {
+          if (contract.appHashFormat.hasMatch(hash)) {
+            appHash = hash;
+          } else {
+            failures.add('app_hash_invalid');
+          }
+        } else {
+          failures.add('autofill_invalid');
         }
       }
     }

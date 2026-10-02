@@ -331,7 +331,7 @@ void main() {
         (smsBlock['required'] as List).cast<String>(),
         ['template', 'language', 'interception_timeout', 'code_length'],
       );
-      expect((smsBlock['optional'] as List).cast<String>(), ['app_hash']);
+      expect((smsBlock['optional'] as List).cast<String>(), ['autofill']);
 
       final fixture = clientWith(body: verificationJson());
       final verification = await fixture.client.getVerification('ver-1');
@@ -340,7 +340,7 @@ void main() {
       expect(verification.sms?.language, isNotNull);
       expect(verification.sms?.interceptionTimeoutSeconds, isNotNull);
       expect(verification.sms?.codeLength, isNotNull);
-      expect(verification.sms?.appHash, isNull);
+      expect(verification.sms?.autofill, isNull);
     });
   });
 
@@ -384,6 +384,23 @@ void main() {
 
   group('the constraints the snapshot records are the ones compiled in', () {
     final constraints = contract['constraints'] as Map<String, dynamic>;
+
+    test('an app hash is sent as the autofill type the snapshot names',
+        () async {
+      final autofill = constraints['autofill'] as Map<String, dynamic>;
+      expect((autofill['types'] as List).cast<String>(), contains('app_hash'));
+
+      final fixture = clientWith(status: 201);
+      await fixture.client.startVerification(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+        appHash: 'A1b2C3d4E5f',
+      );
+      final data = fixture.transport.bodyAt(0)['data'] as Map<String, dynamic>;
+      final sms = data['sms'] as Map;
+      expect(sms.keys, ['autofill']);
+      expect(sms['autofill'], {'type': 'app_hash', 'value': 'A1b2C3d4E5f'});
+    });
 
     test('the app hash format is the snapshot`s, character for character', () {
       expect(appHashFormat.pattern, constraints['appHashFormat']);

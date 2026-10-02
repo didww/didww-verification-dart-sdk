@@ -93,23 +93,78 @@ void main() {
       expect(v.sms!.template, isNull);
     });
 
-    test('app_hash is absent unless one was stored', () {
+    test('autofill is absent unless one was stored', () {
       final without = decodeVerification(
         _verificationJson(
             sms: const {'template': 't', 'interception_timeout': 120}),
       );
-      expect(without.sms!.appHash, isNull);
+      expect(without.sms!.autofill, isNull);
 
       final with_ = decodeVerification(
         _verificationJson(
           sms: const {
             'template': 't',
             'interception_timeout': 120,
-            'app_hash': 'A1b2C3d4E5f',
+            'autofill': {'type': 'app_hash', 'value': 'A1b2C3d4E5f'},
           },
         ),
       );
-      expect(with_.sms!.appHash, 'A1b2C3d4E5f');
+      expect(
+        with_.sms!.autofill,
+        const SmsAutofill(type: 'app_hash', value: 'A1b2C3d4E5f'),
+      );
+    });
+
+    test('the deprecated appHash is the value of an app_hash autofill', () {
+      SmsInfo decode(Map<String, Object?> autofill) => decodeVerification(
+            _verificationJson(sms: {'template': 't', 'autofill': autofill}),
+          ).sms!;
+
+      // ignore: deprecated_member_use_from_same_package
+      expect(decode({'type': 'app_hash', 'value': 'A1b2C3d4E5f'}).appHash,
+          'A1b2C3d4E5f');
+      // A marker type this release does not model still decodes, and carries
+      // no app hash.
+      final other = decode({'type': 'something_new'});
+      expect(other.autofill, const SmsAutofill(type: 'something_new'));
+      // ignore: deprecated_member_use_from_same_package
+      expect(other.appHash, isNull);
+      // Kept for source compatibility with code that builds an SmsInfo itself.
+      // ignore: deprecated_member_use_from_same_package
+      expect(const SmsInfo(appHash: 'A1b2C3d4E5f').appHash, 'A1b2C3d4E5f');
+      expect(
+        () => SmsInfo(
+          autofill: const SmsAutofill(type: 'app_hash', value: 'A1b2C3d4E5f'),
+          // ignore: deprecated_member_use_from_same_package
+          appHash: 'ZZZZZZZZZZZ',
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('the deprecated app_hash key is not read', () {
+      final v = decodeVerification(
+        _verificationJson(
+            sms: const {'template': 't', 'app_hash': 'A1b2C3d4E5f'}),
+      );
+      expect(v.sms!.autofill, isNull);
+    });
+
+    test('a malformed autofill is a decoding error', () {
+      for (final bad in <Object>[
+        'app_hash',
+        {'value': 'A1b2C3d4E5f'},
+        {'type': 7},
+        {'type': 'app_hash', 'value': 7},
+      ]) {
+        expect(
+          () => decodeVerification(
+            _verificationJson(sms: {'template': 't', 'autofill': bad}),
+          ),
+          throwsA(isA<DecodingException>()),
+          reason: '$bad',
+        );
+      }
     });
 
     test('the chosen sms language is read', () {
@@ -318,13 +373,15 @@ void main() {
       });
     });
 
-    test('sends a well-formed app hash', () {
+    test('sends a well-formed app hash as an app_hash autofill', () {
       final body = startBody(
         destination: '491511234567',
         method: DeliveryMethod.sms,
         appHash: 'A1b2C3d4E5f',
       );
-      expect(_sms(body)['app_hash'], 'A1b2C3d4E5f');
+      expect(
+          _sms(body)['autofill'], {'type': 'app_hash', 'value': 'A1b2C3d4E5f'});
+      expect(_sms(body).containsKey('app_hash'), isFalse);
     });
 
     test('drops a malformed app hash and sends the request anyway', () {
@@ -450,7 +507,9 @@ void _languageTags() {
         method: DeliveryMethod.sms,
         appHash: 'A1b2C3d4E5f',
       );
-      expect(_sms(body), {'app_hash': 'A1b2C3d4E5f'});
+      expect(_sms(body), {
+        'autofill': {'type': 'app_hash', 'value': 'A1b2C3d4E5f'},
+      });
     });
   });
 }

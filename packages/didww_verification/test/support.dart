@@ -29,6 +29,7 @@ String verificationJson({
   int? interceptionTimeout = 120,
   int? codeLength = 6,
   String? appHash,
+  Map<String, Object?>? autofill,
   DateTime? expiresAt,
 }) =>
     jsonEncode({
@@ -49,7 +50,10 @@ String verificationJson({
             'language': language,
             'interception_timeout': interceptionTimeout,
             'code_length': codeLength,
-            if (appHash != null) 'app_hash': appHash,
+            if (autofill != null)
+              'autofill': autofill
+            else if (appHash != null)
+              'autofill': {'type': 'app_hash', 'value': appHash},
           },
         if (callout)
           'callout': {'language': language, 'code_length': codeLength},

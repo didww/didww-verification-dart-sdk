@@ -106,7 +106,10 @@ final class MockVerification {
             'language': language,
             'interception_timeout': interceptionTimeout,
             'code_length': codeLength,
-            if (appHash != null) 'app_hash': appHash,
+            if (appHash != null) ...{
+              'autofill': {'type': 'app_hash', 'value': appHash},
+              'app_hash': appHash,
+            },
           },
         if (deliveryMethod == 'callout')
           'callout': {'language': language, 'code_length': codeLength},
