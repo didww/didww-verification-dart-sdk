@@ -58,12 +58,16 @@ final class VerificationClient {
   /// Starts a verification. Bills the account, and is never retried.
   ///
   /// [destination] may carry any formatting; it is normalised to digits first.
+  ///
+  /// [custom] is free text of up to 4096 characters, forwarded to your callback
+  /// server. It is sent from the device, so the callback server must validate it.
   Future<Verification> startVerification({
     required String destination,
     required DeliveryMethod deliveryMethod,
     SmsOptions? sms,
     CalloutOptions? callout,
     String? appHash,
+    String? custom,
   }) async {
     final body = startBody(
       destination: destination,
@@ -71,6 +75,7 @@ final class VerificationClient {
       sms: sms,
       callout: callout,
       appHash: appHash,
+      custom: custom,
     );
     // No retry: a start that timed out may still have been carried out.
     final response =

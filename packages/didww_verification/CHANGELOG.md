@@ -4,6 +4,17 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.2.0
+
+Unreleased.
+
+- **`custom` on `startVerification` and `VerificationSession.start`** — optional free text
+  (up to 4096 characters) forwarded to your callback server, for context it can use to allow
+  or deny. It is not returned by any response, so it is not on `Verification`, and it comes
+  from the device, so the callback server must validate it.
+
+- **`customTooLong`** — a new `ApiErrorCode` for a `custom` value over the limit.
+
 ## 1.1.0
 
 Released — 2026-10.

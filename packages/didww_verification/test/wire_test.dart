@@ -360,6 +360,36 @@ void main() {
     });
   });
 
+  group('the custom value', () {
+    test('sits at the top level of data, whichever the channel', () {
+      for (final method in DeliveryMethod.values) {
+        final body = startBody(
+          destination: '491511234567',
+          method: method,
+          custom: 'build=42',
+        );
+        expect(_data(body)['custom'], 'build=42', reason: method.wire);
+      }
+    });
+
+    test('is omitted when null', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+      );
+      expect(_data(body).containsKey('custom'), isFalse);
+    });
+
+    test('is sent as given, without trimming', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        custom: ' a\n"b" ',
+      );
+      expect(_data(body)['custom'], ' a\n"b" ');
+    });
+  });
+
   group('building a report body', () {
     test('a code goes in the code field', () {
       expect(

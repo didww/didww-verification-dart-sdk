@@ -4,6 +4,13 @@ Notable changes to `didww_verification_sms`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.2.0
+
+Unreleased.
+
+- **No change in this package.** `VerificationSession.start` gains an optional `custom`
+  string in `didww_verification`; the SMS Retriever capture is unaffected.
+
 ## 1.1.0
 
 Released — 2026-10.

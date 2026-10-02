@@ -51,6 +51,7 @@ Map<String, dynamic> startBody({
   SmsOptions? sms,
   CalloutOptions? callout,
   String? appHash,
+  String? custom,
 }) {
   final digits = digitsOf(destination);
   if (digits == null) {
@@ -62,6 +63,7 @@ Map<String, dynamic> startBody({
   final data = <String, dynamic>{
     'destination': digits,
     'delivery_method': method.wire,
+    if (custom != null) 'custom': custom,
   };
 
   if (method == DeliveryMethod.sms) {

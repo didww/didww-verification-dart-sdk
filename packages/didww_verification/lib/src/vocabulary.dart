@@ -88,6 +88,9 @@ enum ApiErrorCode {
   /// The supplied app hash is not eleven characters of the accepted alphabet.
   appHashInvalid('app_hash_invalid'),
 
+  /// The custom value is longer than 4096 characters.
+  customTooLong('custom_too_long'),
+
   /// A code was required and none was supplied.
   codeBlank('code_blank'),
 

@@ -85,6 +85,7 @@
     "delivery_method_invalid",
     "languages_invalid",
     "app_hash_invalid",
+    "custom_too_long",
     "code_blank",
     "code_value_present",
     "destination_not_supported_for_channel",
@@ -127,6 +128,7 @@
     "delivery_method_invalid": "delivery method is invalid",
     "languages_invalid": "languages are invalid",
     "app_hash_invalid": "app hash is invalid",
+    "custom_too_long": "custom is too long",
     "code_blank": "code can't be blank",
     "code_value_present": "code must be blank",
     "destination_not_supported_for_channel": "destination not supported for provided delivery method",
@@ -202,7 +204,8 @@
       "data": [
         "destination",
         "delivery_method",
-        "<delivery_method> block"
+        "<delivery_method> block",
+        "custom"
       ]
     },
     "report": {
@@ -223,6 +226,10 @@
   },
   "constraints": {
     "appHashFormat": "^[A-Za-z0-9+/]{11}$",
+    "customMaxLength": {
+      "value": 4096,
+      "note": "characters; an empty custom is treated as absent, and the value is forwarded to the callback server and never returned"
+    },
     "codeLength": {
       "min": 4,
       "max": 8,

@@ -86,6 +86,15 @@ req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","
 expect 'unknown channel' 422 'delivery_method_inclusion'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"app_hash":"tooshort"}}}'
 expect 'malformed app hash' 422 'app_hash_invalid'
+req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491511234567\",\"delivery_method\":\"sms\",\"custom\":\"$(printf 'x%.0s' $(seq 1 4097))\"}}"
+expect 'custom over 4096 characters' 422 'custom_too_long'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491519999999","delivery_method":"sms","custom":12345}}'
+expect 'a numeric custom is taken as text' 201 '"status":"pending"'
+if grep -q '"custom"' <<<"$BODY"; then
+  printf 'FAIL custom is not in the response\n     %s\n' "$BODY"; fail=$((fail + 1))
+else
+  printf 'ok   custom is not in the response\n'; pass=$((pass + 1))
+fi
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"languages":["not a tag"]}}}'
 expect 'malformed language tag' 422 'languages_invalid'
 

@@ -144,6 +144,18 @@ final class MockApi {
       failures.add('delivery_method_inclusion');
     }
 
+    // As the API does: numbers and booleans become their text, maps and lists
+    // are dropped, and an empty string is absent.
+    final rawCustom = data['custom'];
+    final customText =
+        rawCustom is String || rawCustom is num || rawCustom is bool
+            ? rawCustom.toString()
+            : '';
+    final custom = customText.isEmpty ? null : customText;
+    if (custom != null && custom.runes.length > contract.customMaxLength) {
+      failures.add('custom_too_long');
+    }
+
     // Only the block named after the delivery method is read; the others are
     // ignored rather than rejected, so a malformed sms block on a callout
     // request is not an error.
@@ -194,6 +206,7 @@ final class MockApi {
         language: _resolveLanguage(languages),
         interceptionTimeout: method == 'sms' ? state.ttl.inSeconds : null,
         appHash: appHash,
+        custom: custom,
       ),
     );
 
@@ -224,6 +237,7 @@ final class MockApi {
       signingSecret: application.secret,
       destination: verification.destination,
       deliveryMethod: deliveryMethod,
+      custom: verification.custom,
     );
     log('  callback $callbackUrl -> ${verdict.name}');
 
