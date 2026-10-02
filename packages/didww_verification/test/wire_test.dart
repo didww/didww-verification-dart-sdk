@@ -142,7 +142,7 @@ void main() {
       );
     });
 
-    test('the retired app_hash key is not read', () {
+    test('the deprecated app_hash key is not read', () {
       final v = decodeVerification(
         _verificationJson(
             sms: const {'template': 't', 'app_hash': 'A1b2C3d4E5f'}),

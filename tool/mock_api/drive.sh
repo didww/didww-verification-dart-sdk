@@ -92,7 +92,11 @@ for autofill in '"app_hash"' '{"type":"domain"}' '{"type":"app_hash"}' '{"type":
   req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491511234567\",\"delivery_method\":\"sms\",\"sms\":{\"autofill\":$autofill}}}"
   expect "malformed autofill $autofill" 422 'autofill_invalid'
 done
-for sms in '{"autofill":{"type":"none"}}' '{"app_hash":"A1b2C3d4E5f"}'; do
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"},"app_hash":"A1b2C3d4E5f"}}}'
+expect 'autofill with app_hash' 422 'autofill_invalid'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491519999997","delivery_method":"sms","sms":{"app_hash":"A1b2C3d4E5f"}}}'
+expect 'the deprecated app_hash alone is read' 201 '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}'
+for sms in '{"autofill":{"type":"none"}}' '{"autofill":{"type":"none"},"app_hash":null}'; do
   req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491519999998\",\"delivery_method\":\"sms\",\"sms\":$sms}}"
   expect "no marker for $sms" 201 '"status":"pending"'
   if grep -q '"autofill"' <<<"$BODY"; then
@@ -107,6 +111,7 @@ req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511111111","
 expect 'sms start' 201 '"status":"pending"'
 expect 'the sms block names the chosen language' 201 '"language":"en-US"'
 expect 'the app hash is echoed as autofill' 201 '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}'
+expect 'the deprecated app_hash is echoed too' 201 '"app_hash":"A1b2C3d4E5f"'
 SMS_ID="$(id_of)"
 req GET "$API/verifications/$SMS_ID" "$PUBLIC"; expect 'read by id' 200 '"status":"pending"'
 req GET "$API/verifications/by_number/491511111111" "$PUBLIC"; expect 'read by number' 200 "$SMS_ID"

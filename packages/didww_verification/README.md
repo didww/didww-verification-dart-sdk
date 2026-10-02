@@ -370,7 +370,9 @@ the capture implementation and validated before it reaches the wire. `startVerif
 `appHash` parameter for that path and sends it as `sms.autofill: {"type": "app_hash", "value":
 ...}`; a value that is not eleven characters of `[A-Za-z0-9+/]` is **dropped**, and the request
 goes out identical to one that never carried a hash. Losing autofill beats failing a paid
-verification. With no hash, `autofill` is omitted and the application's default applies.
+verification. With no hash, `autofill` is omitted and the application's default applies. The
+client never sends the deprecated flat `app_hash`: the server rejects a request carrying both
+it and `autofill`.
 
 On the response, `Verification.sms` is non-null exactly on the sms channel:
 
@@ -384,8 +386,9 @@ sms?.codeLength;                   // how many digits the code is, chosen per ap
 ```
 
 `autofill` is an `SmsAutofill`: `type` is `app_hash` today and stays a string, so a marker type
-added on the server later still decodes; `value` is the hash. `sms.appHash` is deprecated and
-returns `autofill.value` when the type is `app_hash`.
+added on the server later still decodes; `value` is the hash. `sms.appHash` is deprecated in favour of
+`sms.autofill` and returns `autofill.value` when the type is `app_hash`; the response still carries
+the flat `app_hash` too, but the client reads only `autofill`.
 
 `codeLength` is a server fact, chosen per application — never compile a length into the client.
 

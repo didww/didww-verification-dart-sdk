@@ -63,7 +63,7 @@ final class SmsInfo {
     this.language,
     this.interceptionTimeoutSeconds,
     this.autofill,
-    @Deprecated('Use autofill') String? appHash,
+    @Deprecated('Use autofill instead.') String? appHash,
     this.codeLength,
   })  : assert(autofill == null || appHash == null),
         _appHash = appHash;
@@ -96,7 +96,9 @@ final class SmsInfo {
   final String? _appHash;
 
   /// The app hash the API stored, absent when none was stored.
-  @Deprecated('Use autofill')
+  ///
+  /// Deprecated: read [autofill] instead.
+  @Deprecated('Use autofill instead.')
   String? get appHash => autofill == null
       ? _appHash
       : (autofill?.type == 'app_hash' ? autofill?.value : null);

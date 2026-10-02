@@ -162,7 +162,17 @@ final class MockApi {
         }
       }
       final autofill = block['autofill'];
-      if (autofill != null) {
+      final legacyHash = block['app_hash'];
+      if (autofill != null && legacyHash != null) {
+        failures.add('autofill_invalid');
+      } else if (autofill == null && legacyHash != null) {
+        if (legacyHash is String &&
+            contract.appHashFormat.hasMatch(legacyHash)) {
+          appHash = legacyHash;
+        } else {
+          failures.add('app_hash_invalid');
+        }
+      } else if (autofill != null) {
         final type = autofill is Map ? autofill['type'] : null;
         final keys = autofill is Map ? autofill.keys.toSet() : null;
         final hash = autofill is Map ? autofill['value'] : null;
