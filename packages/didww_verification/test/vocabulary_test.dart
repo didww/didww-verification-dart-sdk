@@ -64,6 +64,7 @@ void main() {
       expect(DeliveryMethod.fromWire('telepathy'), isNull);
       expect(VerificationStatus.fromWire('pondering'), isNull);
       expect(ApiErrorCode.fromWire('code_we_have_never_heard_of'), isNull);
+      expect(ApiErrorCode.fromWire('stale_dispatch'), isNull);
     });
 
     test('every known value round-trips', () {

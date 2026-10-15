@@ -81,7 +81,7 @@ void main() {
             .toList(),
         ['User-Agent'],
       );
-      expect(req.headers['User-Agent'], 'didww-verification-dart/1.1.0');
+      expect(req.headers['User-Agent'], 'didww-verification-dart/1.1.1');
     });
 
     test('a read sends no body and no content type', () async {

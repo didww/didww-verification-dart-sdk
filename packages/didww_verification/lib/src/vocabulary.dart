@@ -137,9 +137,6 @@ enum ApiErrorCode {
   /// Every permitted attempt was used.
   tooManyAttempts('too_many_attempts'),
 
-  /// The destination could not be reached.
-  staleDispatch('stale_dispatch'),
-
   /// The application was removed while the verification was live.
   applicationDeleted('application_deleted'),
 
@@ -177,7 +174,6 @@ enum ApiErrorCode {
     dispatchFailed,
     expired,
     tooManyAttempts,
-    staleDispatch,
     applicationDeleted,
     superseded,
     deniedMissingCallbackUrl,

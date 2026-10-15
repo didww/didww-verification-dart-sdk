@@ -14,7 +14,7 @@ The client package has no Flutter dependency and runs under plain `dart test`.
 
 ## Status
 
-1.1.0. Both packages are on pub.dev:
+`didww_verification` 1.1.1, `didww_verification_sms` 1.1.0. Both packages are on pub.dev:
 [`didww_verification`](https://pub.dev/packages/didww_verification) and
 [`didww_verification_sms`](https://pub.dev/packages/didww_verification_sms). From 1.0.0
 onwards a breaking change to either package's public API requires a major version.
@@ -24,6 +24,14 @@ onwards a breaking change to either package's public API requires a major versio
 Only the schemes that are safe to ship inside an application binary are supported: the
 application-key scheme and HTTP Basic. Request signing requires a secret that must never
 be embedded in an app, so it is intentionally absent — use a server-side SDK for that.
+
+## Testing
+
+Use the sandbox environment (`VerificationEnvironment.sandbox`) with the reserved test
+numbers. `+12015550100` to `+12015550109` always succeed: the code is `1` repeated to the
+application's code length, for example `111111` for six digits. Other reserved ranges
+simulate failures. The full table is in
+[Testing on sandbox](https://doc.didww.com/otp-verification/testing.html).
 
 ## iOS one-time code autofill
 

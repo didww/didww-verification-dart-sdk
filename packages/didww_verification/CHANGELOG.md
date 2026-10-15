@@ -4,6 +4,16 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.1.1
+
+Released — 2026-10.
+
+- **Removed `ApiErrorCode.staleDispatch`.** The API reports these failures as
+  `dispatchFailed`. A response that still carries `stale_dispatch` decodes as an unknown
+  code (`ApiErrorCode.fromWire` returns `null`), like any code this release does not model.
+
+- Docs: a Testing section on the sandbox environment and its reserved test numbers.
+
 ## 1.1.0
 
 Released — 2026-10.
