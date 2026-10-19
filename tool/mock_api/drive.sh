@@ -84,16 +84,50 @@ req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"12","delivery_m
 expect 'short destination' 422 'destination_invalid'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"telepathy"}}'
 expect 'unknown channel' 422 'delivery_method_inclusion'
-req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"app_hash":"tooshort"}}}'
+req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491511234567\",\"delivery_method\":\"sms\",\"custom\":\"$(printf 'x%.0s' $(seq 1 4097))\"}}"
+expect 'custom over 4096 characters' 422 'custom_too_long'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491519999999","delivery_method":"sms","custom":12345}}'
+expect 'a numeric custom is taken as text' 201 '"status":"pending"'
+if grep -q '"custom"' <<<"$BODY"; then
+  printf 'FAIL custom is not in the response\n     %s\n' "$BODY"; fail=$((fail + 1))
+else
+  printf 'ok   custom is not in the response\n'; pass=$((pass + 1))
+fi
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"autofill":{"type":"app_hash","value":"tooshort"}}}}'
 expect 'malformed app hash' 422 'app_hash_invalid'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"languages":["not a tag"]}}}'
 expect 'malformed language tag' 422 'languages_invalid'
+for autofill in '"app_hash"' '{"type":"domain","value":"example.com"}' '{"type":"app_hash"}' '{"type":"none","value":"A1b2C3d4E5f"}' '{"type":"app_hash","value":"A1b2C3d4E5f","extra":1}'; do
+  req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491511234567\",\"delivery_method\":\"sms\",\"sms\":{\"autofill\":$autofill}}}"
+  expect "malformed autofill $autofill" 422 'autofill_invalid'
+done
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"autofill":{"type":"domain"}}}}'
+expect 'a domain marker with no SMS domain configured' 422 'sms_domain_not_configured'
+for channel in sms callout; do
+  req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491511234567\",\"delivery_method\":\"$channel\",\"$channel\":{\"template_group\":\"no-such-group\"}}}"
+  expect "an unknown $channel template group" 422 'template_group_not_found'
+done
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511234567","delivery_method":"sms","sms":{"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"},"app_hash":"A1b2C3d4E5f"}}}'
+expect 'autofill with app_hash' 422 'autofill_invalid'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491519999997","delivery_method":"sms","sms":{"app_hash":"A1b2C3d4E5f"}}}'
+expect 'the deprecated app_hash alone is read' 201 '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}'
+for sms in '{"autofill":{"type":"none"}}' '{"autofill":{"type":"none"},"app_hash":null}'; do
+  req POST "$API/verifications" "$PUBLIC" "{\"data\":{\"destination\":\"491519999998\",\"delivery_method\":\"sms\",\"sms\":$sms}}"
+  expect "no marker for $sms" 201 '"status":"pending"'
+  if grep -q '"autofill"' <<<"$BODY"; then
+    printf 'FAIL no autofill is echoed for %s\n     %s\n' "$sms" "$BODY"; fail=$((fail + 1))
+  else
+    printf 'ok   no autofill is echoed for %s\n' "$sms"; pass=$((pass + 1))
+  fi
+done
 
 echo "--- sms: start, read, report"
-req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511111111","delivery_method":"sms","sms":{"languages":["en-US"],"app_hash":"A1b2C3d4E5f"}}}'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491511111111","delivery_method":"sms","sms":{"languages":["en-US"],"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}}}}'
 expect 'sms start' 201 '"status":"pending"'
 expect 'the sms block names the chosen language' 201 '"language":"en-US"'
-grep -q '"app_hash":"A1b2C3d4E5f"' <<<"$BODY" && echo 'ok   the app hash is echoed' && pass=$((pass + 1))
+expect 'the sms block says no template group applied' 201 '"template_group":null,"template_group_used":false,"template_fallback_reason":null'
+expect 'the app hash is echoed as autofill' 201 '"autofill":{"type":"app_hash","value":"A1b2C3d4E5f"}'
+expect 'the deprecated app_hash is echoed too' 201 '"app_hash":"A1b2C3d4E5f"'
 SMS_ID="$(id_of)"
 req GET "$API/verifications/$SMS_ID" "$PUBLIC"; expect 'read by id' 200 '"status":"pending"'
 req GET "$API/verifications/by_number/491511111111" "$PUBLIC"; expect 'read by number' 200 "$SMS_ID"
@@ -118,27 +152,27 @@ expect 'report by number' 200 '"status":"verified"'
 
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333333","delivery_method":"callout"}}'
 expect 'callout start' 201 '"delivery_method":"callout"'
-expect 'a callout with no languages gets the default' 201 '"callout":{"language":"en-US","code_length":6}'
+expect 'a callout with no languages gets the default' 201 '"callout":{"language":"en-US","code_length":6,'
 req PATCH "$API/verifications/by_number/491513333333" "$PUBLIC" '{"data":{"delivery_method":"callout","code":"123456"}}'
 expect 'PATCH is accepted as well as PUT' 200 '"status":"verified"'
 
 echo "--- callout: language choice"
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333001","delivery_method":"callout","callout":{"languages":["pt-BR"]}}}'
-expect 'a servable tag is used' 201 '"callout":{"language":"pt-BR","code_length":6}'
+expect 'a servable tag is used' 201 '"callout":{"language":"pt-BR","code_length":6,'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333002","delivery_method":"callout","callout":{"languages":["pt-br"]}}}'
-expect 'the echoed tag is canonical, not the spelling sent' 201 '"callout":{"language":"pt-BR","code_length":6}'
+expect 'the echoed tag is canonical, not the spelling sent' 201 '"callout":{"language":"pt-BR","code_length":6,'
 # The whole point of the echo: an unservable tag is accepted, so nothing but
 # this field says the announcement is in another language than the one asked for.
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333003","delivery_method":"callout","callout":{"languages":["sq-AL","de-DE"]}}}'
-expect 'the first servable tag wins over an earlier unservable one' 201 '"callout":{"language":"de-DE","code_length":6}'
+expect 'the first servable tag wins over an earlier unservable one' 201 '"callout":{"language":"de-DE","code_length":6,'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333004","delivery_method":"callout","callout":{"languages":["sq-AL"]}}}'
-expect 'an unservable tag falls back rather than failing' 201 '"callout":{"language":"en-US","code_length":6}'
+expect 'an unservable tag falls back rather than failing' 201 '"callout":{"language":"en-US","code_length":6,'
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333005","delivery_method":"callout","callout":{"languages":["not a tag"]}}}'
 expect 'a malformed callout tag is rejected' 422 'languages_invalid'
 # Only the block named after the delivery method is read, so a broken block for
 # another channel is ignored rather than failing a paid start.
-req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333006","delivery_method":"callout","sms":{"languages":["not a tag"],"app_hash":"tooshort"},"callout":{"languages":["de-DE"]}}}'
-expect 'a broken sms block on a callout start is ignored' 201 '"callout":{"language":"de-DE","code_length":6}'
+req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491513333006","delivery_method":"callout","sms":{"languages":["not a tag"],"autofill":"broken"},"callout":{"languages":["de-DE"]}}}'
+expect 'a broken sms block on a callout start is ignored' 201 '"callout":{"language":"de-DE","code_length":6,'
 
 echo "--- supersede on a second start"
 req POST "$API/verifications" "$PUBLIC" '{"data":{"destination":"491514444444","delivery_method":"sms"}}'

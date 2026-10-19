@@ -14,6 +14,10 @@ const Set<ApiErrorCode> recoverableErrorCodes = {
   ApiErrorCode.deliveryMethodInvalid,
   ApiErrorCode.validationFailed,
   ApiErrorCode.notReadyToReport,
+  ApiErrorCode.rateLimitPerIp,
+  ApiErrorCode.rateLimitFailedAuth,
+  ApiErrorCode.rateLimitPerAccount,
+  ApiErrorCode.rateLimitPublicPerAccount,
 };
 
 /// Stands in when a terminal state is needed and the API attached no error.
@@ -30,10 +34,12 @@ bool isRecoverable(ApiErrorItem item) => recoverableErrorCodes.contains(
 /// The terminal state [error] maps to.
 VerificationState terminalStateForError(ApiErrorItem error) =>
     switch (error.known) {
-      ApiErrorCode.deniedMissingCallbackUrl =>
+      ApiErrorCode.deniedMissingCallbackUrl ||
+      ApiErrorCode.applicationPaused =>
         VerificationSetupError(code: error.code, detail: error.detail),
       ApiErrorCode.deniedByCallback ||
-      ApiErrorCode.deniedInvalidCallbackResponse =>
+      ApiErrorCode.deniedInvalidCallbackResponse ||
+      ApiErrorCode.destinationCountryDisabled =>
         VerificationDenied(error),
       ApiErrorCode.expired => const VerificationExpired(),
       _ => VerificationFailed(ApiFailure(error)),

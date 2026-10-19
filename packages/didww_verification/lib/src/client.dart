@@ -58,12 +58,19 @@ final class VerificationClient {
   /// Starts a verification. Bills the account, and is never retried.
   ///
   /// [destination] may carry any formatting; it is normalised to digits first.
+  ///
+  /// [appHash] is sent as an `app_hash` autofill unless [sms] carries an
+  /// autofill of its own, which wins.
+  ///
+  /// [custom] is free text of up to 4096 characters, forwarded to your callback
+  /// server. It is sent from the device, so the callback server must validate it.
   Future<Verification> startVerification({
     required String destination,
     required DeliveryMethod deliveryMethod,
     SmsOptions? sms,
     CalloutOptions? callout,
     String? appHash,
+    String? custom,
   }) async {
     final body = startBody(
       destination: destination,
@@ -71,6 +78,7 @@ final class VerificationClient {
       sms: sms,
       callout: callout,
       appHash: appHash,
+      custom: custom,
     );
     // No retry: a start that timed out may still have been carried out.
     final response =
@@ -173,8 +181,14 @@ final class VerificationClient {
     );
     // Any casing: header names are case-insensitive, and a custom
     // [Authorization] must not add or replace it.
-    headers.removeWhere((name, _) => name.toLowerCase() == 'user-agent');
+    // X-User-Agent too: a browser drops a script-set User-Agent, so on the web
+    // only this one reaches the API.
+    headers.removeWhere((name, _) {
+      final lower = name.toLowerCase();
+      return lower == 'user-agent' || lower == 'x-user-agent';
+    });
     headers['User-Agent'] = defaultUserAgent;
+    headers['X-User-Agent'] = defaultUserAgent;
 
     final request = HttpRequest(
       method: method,

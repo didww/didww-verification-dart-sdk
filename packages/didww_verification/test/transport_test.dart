@@ -36,6 +36,7 @@ final class _Loopback {
           'accept',
           'authorization',
           'user-agent',
+          'x-user-agent',
         ])
           if (request.headers.value(name) != null)
             name: request.headers.value(name)!,
@@ -155,7 +156,8 @@ void main() {
       // Neither a custom value nor an explicit null changes what goes on the
       // wire: the SDK always sends its own User-Agent.
       for (final headers in loopback.headers) {
-        expect(headers['user-agent'], 'didww-verification-dart/1.1.0');
+        expect(headers['user-agent'], 'didww-verification-dart/1.2.0');
+        expect(headers['x-user-agent'], 'didww-verification-dart/1.2.0');
       }
     });
 
@@ -175,7 +177,7 @@ void main() {
       );
 
       expect(loopback.headers.single['user-agent'],
-          'didww-verification-dart/1.1.0');
+          'didww-verification-dart/1.2.0');
     });
   });
 

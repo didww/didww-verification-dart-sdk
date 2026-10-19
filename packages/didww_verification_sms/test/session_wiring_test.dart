@@ -31,7 +31,8 @@ String verificationJson({String? appHash, String status = 'pending'}) =>
           'template': 'Your code is {{CODE}}',
           'interception_timeout': 120,
           'code_length': 6,
-          if (appHash != null) 'app_hash': appHash,
+          if (appHash != null)
+            'autofill': {'type': 'app_hash', 'value': appHash},
         },
       },
     });
@@ -94,7 +95,9 @@ void main() {
     );
 
     final data = transport.bodyAt(0)['data'] as Map<String, dynamic>;
-    expect(data['sms'], {'app_hash': hash});
+    expect(data['sms'], {
+      'autofill': {'type': 'app_hash', 'value': hash},
+    });
     expect(session.isAutoCaptureArmed, isTrue);
   });
 

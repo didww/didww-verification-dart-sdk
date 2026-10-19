@@ -4,6 +4,14 @@ Notable changes to `didww_verification_sms`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.2.0
+
+Unreleased.
+
+- **Depends on `didww_verification ^1.2.0`.** No change in this package; carried for the
+  client's additions. The app hash it computes now travels as `sms.autofill`, and capture arms
+  only when the API echoes that same hash back, as before.
+
 ## 1.1.0
 
 Released — 2026-10.

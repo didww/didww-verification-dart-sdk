@@ -483,6 +483,21 @@ void main() {
       expect(transport.bodyAt(0)['data'], isNot(contains('sms')));
     });
 
+    test('a custom value reaches the wire', () async {
+      final transport = FakeTransport([created(verificationJson())]);
+      final session = VerificationSession(client: clientOver(transport.call));
+      addTearDown(session.dispose);
+
+      await session.start(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+        custom: 'build=42',
+      );
+
+      final data = transport.bodyAt(0)['data'] as Map<String, dynamic>;
+      expect(data['custom'], 'build=42');
+    });
+
     test('callout options reach the wire and the chosen language reaches state',
         () async {
       final transport = FakeTransport([

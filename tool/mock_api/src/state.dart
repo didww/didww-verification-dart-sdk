@@ -39,6 +39,7 @@ final class MockVerification {
     this.language,
     this.interceptionTimeout,
     this.appHash,
+    this.custom,
   });
 
   final String id;
@@ -61,6 +62,9 @@ final class MockVerification {
 
   final int? interceptionTimeout;
   final String? appHash;
+
+  /// Forwarded to the callback only; never part of a response.
+  final String? custom;
 
   String status;
   String? errorCode;
@@ -106,14 +110,29 @@ final class MockVerification {
             'language': language,
             'interception_timeout': interceptionTimeout,
             'code_length': codeLength,
-            if (appHash != null) 'app_hash': appHash,
+            ..._noTemplateGroup,
+            if (appHash != null) ...{
+              'autofill': {'type': 'app_hash', 'value': appHash},
+              'app_hash': appHash,
+            },
           },
         if (deliveryMethod == 'callout')
-          'callout': {'language': language, 'code_length': codeLength},
+          'callout': {
+            'language': language,
+            'code_length': codeLength,
+            ..._noTemplateGroup,
+          },
       },
     };
   }
 }
+
+/// No mock application has a template group, so none ever applies.
+const Map<String, Object?> _noTemplateGroup = {
+  'template_group': null,
+  'template_group_used': false,
+  'template_fallback_reason': null,
+};
 
 /// Everything the mock remembers, for the life of the process.
 final class MockState {

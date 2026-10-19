@@ -62,10 +62,45 @@ enum VerificationStatus {
   bool get isTerminal => this != VerificationStatus.pending;
 }
 
+/// Why a template group's template was not used.
+///
+/// Open on decode, like [VerificationStatus]: [fromWire] returns `null` for a
+/// reason this release does not know.
+enum TemplateFallbackReason {
+  /// The group has no template in the chosen language.
+  languageMissing('language_missing'),
+
+  /// The group's template is awaiting review.
+  versionPending('version_pending'),
+
+  /// The group's template was rejected in review.
+  versionRejected('version_rejected'),
+
+  /// The group's recording is not ready yet.
+  audioNotReady('audio_not_ready'),
+
+  /// The application's group no longer exists; `template_group` is null.
+  groupMissing('group_missing');
+
+  const TemplateFallbackReason(this.wire);
+
+  /// The value carried on the wire.
+  final String wire;
+
+  /// The reason for [value], or `null` when the API names one this release
+  /// does not model.
+  static TemplateFallbackReason? fromWire(String value) {
+    for (final reason in values) {
+      if (reason.wire == value) return reason;
+    }
+    return null;
+  }
+}
+
 /// Every coded error the API can return.
 ///
-/// Appears either as an element of an `errors` envelope or, for the nine
-/// outcomes, as the error code of a finished verification.
+/// Appears either as an element of an `errors` envelope or, for the outcomes,
+/// as the error code of a finished verification.
 enum ApiErrorCode {
   /// No destination was supplied.
   destinationBlank('destination_blank'),
@@ -85,8 +120,21 @@ enum ApiErrorCode {
   /// One or more requested template languages are not valid tags.
   languagesInvalid('languages_invalid'),
 
+  /// The autofill block is malformed or names a type the API does not accept.
+  autofillInvalid('autofill_invalid'),
+
   /// The supplied app hash is not eleven characters of the accepted alphabet.
   appHashInvalid('app_hash_invalid'),
+
+  /// The custom value is longer than 4096 characters.
+  customTooLong('custom_too_long'),
+
+  /// The requested template group does not exist.
+  templateGroupNotFound('template_group_not_found'),
+
+  /// Domain-bound autofill was requested and the application has no SMS
+  /// domain configured.
+  smsDomainNotConfigured('sms_domain_not_configured'),
 
   /// A code was required and none was supplied.
   codeBlank('code_blank'),
@@ -94,7 +142,9 @@ enum ApiErrorCode {
   /// A code was supplied on a channel that does not take one.
   codeValuePresent('code_value_present'),
 
-  /// The destination cannot be reached on the requested channel.
+  /// The destination cannot be reached on the requested channel. Arrives as
+  /// the outcome of a failed verification; kept in the envelope set for
+  /// compatibility.
   destinationNotSupportedForChannel('destination_not_supported_for_channel'),
 
   /// The reported code was wrong.
@@ -118,9 +168,26 @@ enum ApiErrorCode {
   /// The account cannot fund another verification.
   balanceInsufficient('balance_insufficient'),
 
-  /// A start for the same application and destination was requested too
-  /// recently; retry after the `Retry-After` header.
+  /// A verification for this destination was requested too recently; retry
+  /// after the `Retry-After` header.
   destinationInCooldown('destination_in_cooldown'),
+
+  /// Too many requests from this IP address.
+  rateLimitPerIp('rate_limit_per_ip'),
+
+  /// Too many failed authentication attempts from this IP address.
+  rateLimitFailedAuth('rate_limit_failed_auth'),
+
+  /// Too many requests for this account.
+  rateLimitPerAccount('rate_limit_per_account'),
+
+  /// Too many public requests for this account.
+  rateLimitPublicPerAccount('rate_limit_public_per_account'),
+
+  /// The application reached its daily or monthly verification limit for this
+  /// delivery method. `Retry-After` can be long (days): surface it to the user
+  /// instead of retrying.
+  volumeLimitReached('volume_limit_reached'),
 
   /// The request failed validation without a more specific code.
   validationFailed('validation_failed'),
@@ -138,6 +205,10 @@ enum ApiErrorCode {
   tooManyAttempts('too_many_attempts'),
 
   /// The destination could not be reached.
+  @Deprecated(
+    'No longer sent: these verifications are reported as dispatchFailed. '
+    'Will be removed in the next major version.',
+  )
   staleDispatch('stale_dispatch'),
 
   /// The application was removed while the verification was live.
@@ -153,7 +224,13 @@ enum ApiErrorCode {
   deniedByCallback('denied_by_callback'),
 
   /// The application's callback answered in a way that could not be accepted.
-  deniedInvalidCallbackResponse('denied_invalid_callback_response');
+  deniedInvalidCallbackResponse('denied_invalid_callback_response'),
+
+  /// The application is paused.
+  applicationPaused('application_paused'),
+
+  /// The destination's country is disabled in the account settings.
+  destinationCountryDisabled('destination_country_disabled');
 
   const ApiErrorCode(this.wire);
 
@@ -177,11 +254,15 @@ enum ApiErrorCode {
     dispatchFailed,
     expired,
     tooManyAttempts,
+    // ignore: deprecated_member_use_from_same_package
     staleDispatch,
     applicationDeleted,
     superseded,
     deniedMissingCallbackUrl,
     deniedByCallback,
     deniedInvalidCallbackResponse,
+    applicationPaused,
+    destinationCountryDisabled,
+    destinationNotSupportedForChannel,
   };
 }

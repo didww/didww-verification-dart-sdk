@@ -51,6 +51,7 @@ Map<String, dynamic> startBody({
   SmsOptions? sms,
   CalloutOptions? callout,
   String? appHash,
+  String? custom,
 }) {
   final digits = digitsOf(destination);
   if (digits == null) {
@@ -62,6 +63,7 @@ Map<String, dynamic> startBody({
   final data = <String, dynamic>{
     'destination': digits,
     'delivery_method': method.wire,
+    if (custom != null) 'custom': custom,
   };
 
   if (method == DeliveryMethod.sms) {
@@ -69,18 +71,29 @@ Map<String, dynamic> startBody({
     final languages = acceptedLanguages(sms?.languages);
     if (languages != null) block['languages'] = languages;
 
-    if (appHash != null) {
-      if (appHashFormat.hasMatch(appHash)) {
-        block['app_hash'] = appHash;
-      } else {
+    final autofill = sms?.autofill ??
+        (appHash == null ? null : SmsAutofill.appHash(appHash));
+    if (autofill != null) {
+      final value = autofill.value;
+      if (autofill.type == 'app_hash' &&
+          (value == null || !appHashFormat.hasMatch(value))) {
         // Dropped, not sent: the API rejects a malformed hash and fails the
         // whole verification. Omitting it costs automatic capture only.
         debugDiagnostic(
-          'app hash "$appHash" is malformed and was not sent; '
+          'app hash "$value" is malformed and was not sent; '
           'automatic capture is unavailable for this verification',
         );
+      } else {
+        block['autofill'] = {
+          'type': autofill.type,
+          // Only an app hash carries a value; the API rejects one on any other type.
+          if (autofill.type == 'app_hash') 'value': value,
+        };
       }
     }
+
+    final templateGroup = sms?.templateGroup;
+    if (templateGroup != null) block['template_group'] = templateGroup;
 
     if (block.isNotEmpty) data['sms'] = block;
   }
@@ -89,6 +102,9 @@ Map<String, dynamic> startBody({
     final block = <String, dynamic>{};
     final languages = acceptedLanguages(callout?.languages);
     if (languages != null) block['languages'] = languages;
+
+    final templateGroup = callout?.templateGroup;
+    if (templateGroup != null) block['template_group'] = templateGroup;
 
     if (block.isNotEmpty) data['callout'] = block;
   }
@@ -145,9 +161,25 @@ SmsInfo? _decodeSms(Object? raw, String body) {
     template: _optionalString(raw, 'template', body),
     language: _optionalString(raw, 'language', body),
     interceptionTimeoutSeconds: _optionalInt(raw, 'interception_timeout', body),
-    appHash: _optionalString(raw, 'app_hash', body),
+    autofill: _decodeAutofill(raw['autofill'], body),
     codeLength: _optionalInt(raw, 'code_length', body),
+    templateGroup: _optionalString(raw, 'template_group', body),
+    templateGroupUsed: _optionalBool(raw, 'template_group_used', body),
+    templateFallbackReason:
+        _optionalString(raw, 'template_fallback_reason', body),
   );
+}
+
+SmsAutofill? _decodeAutofill(Object? raw, String body) {
+  if (raw == null) return null;
+  if (raw is! Map) {
+    throw DecodingException('sms.autofill is not an object', body: body);
+  }
+  final type = raw['type'];
+  if (type is! String) {
+    throw DecodingException('sms.autofill has no type', body: body);
+  }
+  return SmsAutofill(type: type, value: _optionalString(raw, 'value', body));
 }
 
 CalloutInfo? _decodeCallout(Object? raw, String body) {
@@ -155,6 +187,10 @@ CalloutInfo? _decodeCallout(Object? raw, String body) {
   return CalloutInfo(
     language: _optionalString(raw, 'language', body),
     codeLength: _optionalInt(raw, 'code_length', body),
+    templateGroup: _optionalString(raw, 'template_group', body),
+    templateGroupUsed: _optionalBool(raw, 'template_group_used', body),
+    templateFallbackReason:
+        _optionalString(raw, 'template_fallback_reason', body),
   );
 }
 
@@ -226,6 +262,14 @@ int? _optionalInt(Map<Object?, Object?> data, String key, String body) {
   if (value == null) return null;
   if (value is int) return value;
   throw DecodingException('$key is not a whole number', body: body);
+}
+
+/// A value that may be absent, but must be a boolean when present.
+bool? _optionalBool(Map<Object?, Object?> data, String key, String body) {
+  final value = data[key];
+  if (value == null) return null;
+  if (value is bool) return value;
+  throw DecodingException('$key is not a boolean', body: body);
 }
 
 String _requiredString(Map<String, dynamic> data, String key, String body) {

@@ -41,6 +41,13 @@ void main() {
       );
     });
 
+    test('template fallback reasons', () {
+      expect(
+        TemplateFallbackReason.values.map((r) => r.wire).toList(),
+        _strings(contract, 'templateFallbackReasons'),
+      );
+    });
+
     test('error codes, in declaration order', () {
       expect(
         ApiErrorCode.values.map((c) => c.wire).toList(),
@@ -64,6 +71,7 @@ void main() {
       expect(DeliveryMethod.fromWire('telepathy'), isNull);
       expect(VerificationStatus.fromWire('pondering'), isNull);
       expect(ApiErrorCode.fromWire('code_we_have_never_heard_of'), isNull);
+      expect(TemplateFallbackReason.fromWire('reason_from_later'), isNull);
     });
 
     test('every known value round-trips', () {
@@ -75,6 +83,9 @@ void main() {
       }
       for (final c in ApiErrorCode.values) {
         expect(ApiErrorCode.fromWire(c.wire), c);
+      }
+      for (final r in TemplateFallbackReason.values) {
+        expect(TemplateFallbackReason.fromWire(r.wire), r);
       }
     });
   });
@@ -93,6 +104,8 @@ void main() {
       expect(ApiErrorCode.unauthorized.isOutcome, isFalse);
       expect(ApiErrorCode.tooManyAttempts.isOutcome, isTrue);
       expect(ApiErrorCode.superseded.isOutcome, isTrue);
+      // Both a 422 code and the outcome of a failed verification.
+      expect(ApiErrorCode.destinationNotSupportedForChannel.isOutcome, isTrue);
     });
   });
 }

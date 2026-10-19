@@ -29,6 +29,10 @@ String verificationJson({
   int? interceptionTimeout = 120,
   int? codeLength = 6,
   String? appHash,
+  Map<String, Object?>? autofill,
+  String? templateGroup,
+  bool templateGroupUsed = false,
+  String? templateFallbackReason,
   DateTime? expiresAt,
 }) =>
     jsonEncode({
@@ -49,10 +53,22 @@ String verificationJson({
             'language': language,
             'interception_timeout': interceptionTimeout,
             'code_length': codeLength,
-            if (appHash != null) 'app_hash': appHash,
+            'template_group': templateGroup,
+            'template_group_used': templateGroupUsed,
+            'template_fallback_reason': templateFallbackReason,
+            if (autofill != null)
+              'autofill': autofill
+            else if (appHash != null)
+              'autofill': {'type': 'app_hash', 'value': appHash},
           },
         if (callout)
-          'callout': {'language': language, 'code_length': codeLength},
+          'callout': {
+            'language': language,
+            'code_length': codeLength,
+            'template_group': templateGroup,
+            'template_group_used': templateGroupUsed,
+            'template_fallback_reason': templateFallbackReason,
+          },
       },
     });
 

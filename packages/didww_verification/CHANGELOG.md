@@ -4,6 +4,73 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.2.0
+
+Unreleased.
+
+### Added
+
+- **`custom` on `startVerification` and `VerificationSession.start`** — optional free text
+  (up to 4096 characters) forwarded to your callback server, for context it can use to allow
+  or deny. It is not returned by any response, so it is not on `Verification`, and it comes
+  from the device, so the callback server must validate it. A longer value is refused with the
+  new `customTooLong` error code.
+
+- **`SmsOptions.autofill`**, built with `SmsAutofill.appHash(value)`, `SmsAutofill.domain()` or
+  `SmsAutofill.none()`, to choose the autofill marker instead of the application's default. It
+  wins over the app hash an auto-capture computes. The app hash is now sent as
+  `sms.autofill`. `SmsInfo.autofill` reads back the stored marker, `app_hash` or `domain`,
+  whose `value` is the hash or the domain; capture arms only on an `app_hash` echo of the
+  device's own hash. New error codes `autofillInvalid` and `smsDomainNotConfigured`.
+
+- **`templateGroup` on `SmsOptions` and `CalloutOptions`**, to pick a template group instead of
+  the application's default. `SmsInfo` and `CalloutInfo` gain `templateGroup`,
+  `templateGroupUsed` and `templateFallbackReason`, the last an open vocabulary read through
+  `knownTemplateFallbackReason` (`TemplateFallbackReason`). An unknown group is refused with
+  the new `templateGroupNotFound` error code.
+
+- **New error codes for 429**, all thrown as `TooManyRequestsException`: `rateLimitPerIp`
+  (too many requests from this IP address), `rateLimitFailedAuth` (too many failed
+  authentication attempts from this IP address), `rateLimitPerAccount` (too many requests for
+  this account), `rateLimitPublicPerAccount` (too many public requests for this account) and
+  `volumeLimitReached` (the application reached its daily or monthly verification limit for this
+  delivery method). Wait for `retryAfter` before trying again; for `volumeLimitReached` it can
+  be long (days), so surface it to the user instead of retrying.
+
+- **New outcome codes:** `applicationPaused` (a `VerificationSetupError` in the session) and
+  `destinationCountryDisabled` (a `VerificationDenied`).
+
+- **`X-User-Agent`** is sent on every request with the same value as `User-Agent`, so a
+  Flutter web app, whose browser drops a `User-Agent` set by script, still identifies the SDK.
+
+### Changed
+
+- **The session retries a rate-limited submission once.** A report refused with one of the four
+  rate-limit codes waits for `retryAfter` (capped at five seconds) and is sent again. If the
+  retry is limited too, the session returns to
+  `VerificationAwaitingInput` with the code as `lastError`, so the user can submit again — the
+  four codes are now in `recoverableErrorCodes`. A start is still never retried, and
+  `volumeLimitReached` stays terminal.
+
+- **An unsupported destination is now a failed verification, not a 422.** A destination with no
+  country, none reachable on the channel, or in a blocked range comes back as a 201 verification
+  with status `failed` and error code `destinationNotSupportedForChannel`. Code that handled the
+  422 now receives a `VerificationFailed` in the session, or a `Verification` whose `knownStatus`
+  is `failed` from the client. The code stays in the envelope vocabulary for compatibility.
+
+- **New `ApiErrorCode` values break exhaustive `switch` expressions** over the enum. Add the new
+  cases, or a wildcard arm.
+
+### Deprecated
+
+- **`SmsInfo.appHash`.** Read `SmsInfo.autofill`; `appHash` returns its value when the type
+  is `app_hash`. The flat `app_hash` in responses is no longer read: `appHash` now derives from
+  `autofill`.
+
+- **`ApiErrorCode.staleDispatch`.** The service no longer sends it and reports these
+  verifications as `dispatchFailed`. It stays so existing matches keep compiling, and will be
+  removed in the next major version.
+
 ## 1.1.0
 
 Released — 2026-10.
