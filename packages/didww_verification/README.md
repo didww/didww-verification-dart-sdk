@@ -130,8 +130,10 @@ codes `rate_limit_per_ip`, `rate_limit_failed_auth`, `rate_limit_per_account` an
 `rate_limit_public_per_account`. Everything else is terminal.
 
 **A rate-limited submission is retried once.** When a report is refused with one of those four
-codes, the session stays on `VerificationSubmitting`, waits for `Retry-After` (capped at five
-seconds) and sends the same code again. If the retry is limited too, the session returns to
+codes, it is retried once after `Retry-After` when that is at most 5 seconds: the session stays
+on `VerificationSubmitting`, waits the full `Retry-After` and sends the same code again. A longer
+`Retry-After` is surfaced at once. If it is surfaced, or the retry is limited too, the session
+returns to
 `VerificationAwaitingInput` with that code as `lastError`, and the user can submit again. A
 rate-limited start is not retried and is terminal, like any other start failure.
 

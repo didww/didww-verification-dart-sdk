@@ -43,7 +43,8 @@ final class VerificationSession {
     ApiErrorCode.rateLimitPublicPerAccount,
   };
 
-  /// The longest a rate-limited submission waits before its one retry.
+  /// The longest `Retry-After` a rate-limited submission waits out for its one
+  /// retry; a longer one is surfaced at once.
   static const Duration _maxRateLimitWait = Duration(seconds: 5);
 
   final List<MultiStreamController<VerificationState>> _listeners = [];
@@ -295,12 +296,10 @@ final class VerificationSession {
     } on TooManyRequestsException catch (error) {
       final rateLimited = error.errors.isNotEmpty &&
           error.errors.every((e) => _requestRateLimits.contains(e.known));
-      if (!rateLimited) rethrow;
-
       final wait = error.retryAfter ?? const Duration(seconds: 1);
-      await Future<void>.delayed(
-        wait > _maxRateLimitWait ? _maxRateLimitWait : wait,
-      );
+      if (!rateLimited || wait > _maxRateLimitWait) rethrow;
+
+      await Future<void>.delayed(wait);
       if (_isStale(generation)) rethrow;
       return send();
     }

@@ -25,8 +25,9 @@ Unreleased.
 
 - **`templateGroup` on `SmsOptions` and `CalloutOptions`**, to pick a template group instead of
   the application's default. `SmsInfo` and `CalloutInfo` gain `templateGroup`,
-  `templateGroupUsed` and `templateFallbackReason`, the last an open vocabulary read through
-  `knownTemplateFallbackReason` (`TemplateFallbackReason`). An unknown group is refused with
+  `templateGroupUsed` and `templateFallbackReason`. `templateFallbackReason` is an
+  open-vocabulary value, readable as a known `TemplateFallbackReason` through
+  `knownTemplateFallbackReason`. An unknown group is refused with
   the new `templateGroupNotFound` error code.
 
 - **New error codes for 429**, all thrown as `TooManyRequestsException`: `rateLimitPerIp`
@@ -46,8 +47,8 @@ Unreleased.
 ### Changed
 
 - **The session retries a rate-limited submission once.** A report refused with one of the four
-  rate-limit codes waits for `retryAfter` (capped at five seconds) and is sent again. If the
-  retry is limited too, the session returns to
+  rate-limit codes is retried once after `Retry-After` when that is at most 5 seconds; a longer
+  one is surfaced at once. If it is surfaced, or the retry is limited too, the session returns to
   `VerificationAwaitingInput` with the code as `lastError`, so the user can submit again — the
   four codes are now in `recoverableErrorCodes`. A start is still never retried, and
   `volumeLimitReached` stays terminal.

@@ -80,11 +80,11 @@ void main() {
       });
     });
 
-    test('waits at most five seconds whatever Retry-After says', () {
+    test('waits the full Retry-After when it is five seconds', () {
       fakeAsync((async) {
         final transport = FakeTransport([
           created(verificationJson()),
-          _tooMany('rate_limit_per_account', retryAfter: '60'),
+          _tooMany('rate_limit_per_account', retryAfter: '5'),
           ok(verificationJson(status: 'verified')),
         ]);
         final session = _submitted(async, transport);
@@ -92,6 +92,28 @@ void main() {
         async.elapse(const Duration(milliseconds: 4999));
         expect(transport.callCount, 2);
         async.elapse(const Duration(milliseconds: 1));
+        expect(transport.callCount, 3);
+        expect(session.state, isA<VerificationVerified>());
+        session.dispose();
+      });
+    });
+
+    test('a Retry-After above five seconds is surfaced, not retried', () {
+      fakeAsync((async) {
+        final transport = FakeTransport([
+          created(verificationJson()),
+          _tooMany('rate_limit_per_account', retryAfter: '6'),
+          ok(verificationJson(status: 'verified')),
+        ]);
+        final session = _submitted(async, transport);
+
+        final live = session.state as VerificationAwaitingInput;
+        expect(live.lastError?.known, ApiErrorCode.rateLimitPerAccount);
+        async.elapse(const Duration(seconds: 10));
+        expect(transport.callCount, 2);
+
+        session.submit('123456');
+        async.flushMicrotasks();
         expect(transport.callCount, 3);
         expect(session.state, isA<VerificationVerified>());
         session.dispose();
