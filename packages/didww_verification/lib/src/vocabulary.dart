@@ -184,9 +184,9 @@ enum ApiErrorCode {
   /// Too many public requests for this account.
   rateLimitPublicPerAccount('rate_limit_public_per_account'),
 
-  /// The application reached its daily or monthly verification limit for this
-  /// delivery method. `Retry-After` can be long (days): surface it to the user
-  /// instead of retrying.
+  /// The application reached its daily or monthly verification limit.
+  /// `Retry-After` can be long (days): surface it to the user instead of
+  /// retrying.
   volumeLimitReached('volume_limit_reached'),
 
   /// The request failed validation without a more specific code.

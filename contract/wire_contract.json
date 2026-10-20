@@ -168,7 +168,7 @@
     "rate_limit_failed_auth": "too many failed authentication attempts from this IP address; try again later",
     "rate_limit_per_account": "too many requests for this account; contact support to raise the limit",
     "rate_limit_public_per_account": "too many public requests for this account; contact support to raise the limit",
-    "volume_limit_reached": "the application reached its daily or monthly verification limit for this channel",
+    "volume_limit_reached": "the application reached its daily or monthly verification limit",
     "validation_failed": "request is invalid",
     "internal_error": "internal server error",
     "dispatch_failed": "failed to deliver",
@@ -302,6 +302,6 @@
       "note": "a finished verification is hard-deleted after this, so a later read by id or by number answers 404 rather than the outcome; persist anything needed beyond the window"
     },
     "reportBeforeDispatch": "'pending' spans a window in which a report is refused with not_ready_to_report (422): the status is already public and the row underneath it has not finished dispatching, so the code is retryable rather than terminal",
-    "tooManyRequests": "429 carries one of: destination_in_cooldown (a verification for this destination was requested too recently), rate_limit_per_ip (too many requests from this IP address), rate_limit_failed_auth (too many failed authentication attempts from this IP address), rate_limit_per_account (too many requests for this account), rate_limit_public_per_account (too many public requests for this account) or volume_limit_reached (the application reached its daily or monthly verification limit for this delivery method). Wait the number of seconds in Retry-After before trying again; for volume_limit_reached it can be long (days), so surface it instead of retrying"
+    "tooManyRequests": "429 carries one of: destination_in_cooldown (a verification for this destination was requested too recently), rate_limit_per_ip (too many requests from this IP address), rate_limit_failed_auth (too many failed authentication attempts from this IP address), rate_limit_per_account (too many requests for this account), rate_limit_public_per_account (too many public requests for this account) or volume_limit_reached (the application reached its daily or monthly verification limit). Wait the number of seconds in Retry-After before trying again; for volume_limit_reached it can be long (days), so surface it instead of retrying"
   }
 }

@@ -34,9 +34,9 @@ Unreleased.
   (too many requests from this IP address), `rateLimitFailedAuth` (too many failed
   authentication attempts from this IP address), `rateLimitPerAccount` (too many requests for
   this account), `rateLimitPublicPerAccount` (too many public requests for this account) and
-  `volumeLimitReached` (the application reached its daily or monthly verification limit for this
-  delivery method). Wait for `retryAfter` before trying again; for `volumeLimitReached` it can
-  be long (days), so surface it to the user instead of retrying.
+  `volumeLimitReached` (the application reached its daily or monthly verification limit). Wait
+  for `retryAfter` before trying again; for `volumeLimitReached` it can be long (days), so
+  surface it to the user instead of retrying.
 
 - **New outcome codes:** `applicationPaused` (a `VerificationSetupError` in the session) and
   `destinationCountryDisabled` (a `VerificationDenied`).
@@ -61,6 +61,9 @@ Unreleased.
 
 - **New `ApiErrorCode` values break exhaustive `switch` expressions** over the enum. Add the new
   cases, or a wildcard arm.
+
+- Docs: a Testing section on the sandbox environment, which sends nothing and gives an outcome
+  only for the reserved test numbers.
 
 ### Deprecated
 

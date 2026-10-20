@@ -542,7 +542,7 @@ arrives as a plain `ApiException` rather than a decode failure.
 | `rate_limit_failed_auth` | Too many failed authentication attempts from this IP address |
 | `rate_limit_per_account` | Too many requests for this account |
 | `rate_limit_public_per_account` | Too many public requests for this account |
-| `volume_limit_reached` | The application reached its daily or monthly verification limit for this delivery method |
+| `volume_limit_reached` | The application reached its daily or monthly verification limit |
 
 Wait the number of seconds in `Retry-After` before trying again. For `volume_limit_reached` it
 can be long (days): surface it to the user instead of retrying, or contact support to raise the
@@ -637,6 +637,18 @@ out, records every request, and can be told to throw on a given attempt.
 `final`, so `class MockClient extends Mock implements VerificationClient` will not compile. Drive a
 real client over a fake transport instead — the request bodies are then asserted as they go on the
 wire, rather than as a mock happened to record them.
+
+### Testing on sandbox
+
+```dart
+VerificationClient(auth: …, environment: VerificationEnvironment.sandbox);
+```
+
+The sandbox sends no real SMS and places no real calls. Only the reserved test numbers get an
+outcome: each gives a fixed result, such as delivered, failed or expired, and a delivered one has
+a fixed code. A verification to any other number ends with status `failed` and error code
+`dispatch_failed`. The test numbers, their outcomes and the code to submit are listed in
+[Testing on sandbox](https://doc.didww.com/otp-verification/testing.html).
 
 ## No dependencies
 
