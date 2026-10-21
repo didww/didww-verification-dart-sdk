@@ -183,31 +183,34 @@ void main() {
   });
 
   group('a status the snapshot names becomes the code it names', () {
-    final statusCodes = (contract['statusCodes'] as Map<String, dynamic>)
-        .map((key, value) => MapEntry(int.parse(key), value as String));
+    final statusCodes = contract['statusCodes'] as Map<String, dynamic>;
 
     for (final entry in statusCodes.entries) {
+      final status = int.parse(entry.key);
       // 422 carries whichever validation slug applies, so the snapshot names no
       // single code for it and there is nothing here to pin.
-      if (entry.key == 422) continue;
+      if (status == 422) continue;
 
-      test('${entry.key} is ${entry.value}', () async {
-        final fixture = clientWith(
-          status: entry.key,
-          body: errorsJson([entry.value]),
-        );
+      final codes = entry.value is List
+          ? (entry.value as List<dynamic>).cast<String>()
+          : [entry.value as String];
 
-        await expectLater(
-          fixture.client.getVerification('ver-1'),
-          throwsA(
-            isA<ApiException>().having(
-              (error) => error.errors.single.code,
-              'code',
-              entry.value,
+      for (final code in codes) {
+        test('$status is $code', () async {
+          final fixture = clientWith(status: status, body: errorsJson([code]));
+
+          await expectLater(
+            fixture.client.getVerification('ver-1'),
+            throwsA(
+              isA<ApiException>().having(
+                (error) => error.errors.single.code,
+                'code',
+                code,
+              ),
             ),
-          ),
-        );
-      });
+          );
+        });
+      }
     }
   });
 

@@ -62,8 +62,8 @@ Unreleased.
 - **New `ApiErrorCode` values break exhaustive `switch` expressions** over the enum. Add the new
   cases, or a wildcard arm.
 
-- Docs: a Testing section on the sandbox environment, which sends nothing and gives an outcome
-  only for the reserved test numbers.
+- Docs: a Testing section on the sandbox environment, which sends nothing and gives a predefined
+  result only for the reserved test numbers.
 
 ### Deprecated
 

@@ -259,7 +259,14 @@
     "402": "balance_insufficient",
     "404": "not_found",
     "422": "validation failures",
-    "429": "destination_in_cooldown",
+    "429": [
+      "destination_in_cooldown",
+      "rate_limit_per_ip",
+      "rate_limit_failed_auth",
+      "rate_limit_per_account",
+      "rate_limit_public_per_account",
+      "volume_limit_reached"
+    ],
     "500": "internal_error"
   },
   "constraints": {
