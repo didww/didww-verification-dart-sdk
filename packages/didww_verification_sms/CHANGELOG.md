@@ -6,7 +6,7 @@ change to the public surface requires a major version.
 
 ## 1.2.0
 
-Unreleased.
+Released — 2026-10.
 
 - **Depends on `didww_verification ^1.2.0`.** No change in this package; carried for the
   client's additions. The app hash it computes now travels as `sms.autofill`, and capture arms

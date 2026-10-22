@@ -6,7 +6,7 @@ change to the public surface requires a major version.
 
 ## 1.2.0
 
-Unreleased.
+Released — 2026-10.
 
 ### Added
 
