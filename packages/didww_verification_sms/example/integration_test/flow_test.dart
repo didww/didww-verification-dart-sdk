@@ -179,13 +179,13 @@ void main() {
       deliveryMethod: DeliveryMethod.sms,
     );
 
-    // The mock echoes app_hash only when it receives one, so a null echo is a
+    // The mock echoes autofill only when it receives one, so a null echo is a
     // fact about the wire and not just about this object.
     expect(session.hasAutoCapture, isFalse);
     expect(session.isAutoCaptureArmed, isFalse);
     final live = session.state as VerificationAwaitingInput;
     expect(live.sms?.template, isNotNull);
-    expect(live.sms?.appHash, isNull);
+    expect(live.sms?.autofill, isNull);
 
     await submitAndSettle(session, '123456');
     expect(session.state, isA<VerificationVerified>());

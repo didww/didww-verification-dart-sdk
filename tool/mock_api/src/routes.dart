@@ -144,6 +144,18 @@ final class MockApi {
       failures.add('delivery_method_inclusion');
     }
 
+    // As the API does: numbers and booleans become their text, maps and lists
+    // are dropped, and an empty string is absent.
+    final rawCustom = data['custom'];
+    final customText =
+        rawCustom is String || rawCustom is num || rawCustom is bool
+            ? rawCustom.toString()
+            : '';
+    final custom = customText.isEmpty ? null : customText;
+    if (custom != null && custom.runes.length > contract.customMaxLength) {
+      failures.add('custom_too_long');
+    }
+
     // Only the block named after the delivery method is read; the others are
     // ignored rather than rejected, so a malformed sms block on a callout
     // request is not an error.
@@ -161,13 +173,42 @@ final class MockApi {
           languages = requested.cast<String>();
         }
       }
-      final hash = block['app_hash'];
-      if (hash != null) {
-        if (hash is! String || !contract.appHashFormat.hasMatch(hash)) {
-          failures.add('app_hash_invalid');
+      final autofill = block['autofill'];
+      final legacyHash = block['app_hash'];
+      if (autofill != null && legacyHash != null) {
+        failures.add('autofill_invalid');
+      } else if (autofill == null && legacyHash != null) {
+        if (legacyHash is String &&
+            contract.appHashFormat.hasMatch(legacyHash)) {
+          appHash = legacyHash;
         } else {
-          appHash = hash;
+          failures.add('app_hash_invalid');
         }
+      } else if (autofill != null) {
+        final type = autofill is Map ? autofill['type'] : null;
+        final keys = autofill is Map ? autofill.keys.toSet() : null;
+        final hash = autofill is Map ? autofill['value'] : null;
+        if (type == 'none' && keys!.length == 1) {
+          // No marker, which is also what an omitted autofill means here.
+        } else if (type == 'domain' && keys!.length == 1) {
+          // No mock application has an SMS domain configured.
+          failures.add('sms_domain_not_configured');
+        } else if (type == 'app_hash' &&
+            hash is String &&
+            keys!.difference({'type', 'value'}).isEmpty) {
+          if (contract.appHashFormat.hasMatch(hash)) {
+            appHash = hash;
+          } else {
+            failures.add('app_hash_invalid');
+          }
+        } else {
+          failures.add('autofill_invalid');
+        }
+      }
+      // No mock application has a template group, so any name is unknown.
+      final templateGroup = block['template_group'];
+      if (templateGroup is String && templateGroup.isNotEmpty) {
+        failures.add('template_group_not_found');
       }
     }
 
@@ -194,6 +235,7 @@ final class MockApi {
         language: _resolveLanguage(languages),
         interceptionTimeout: method == 'sms' ? state.ttl.inSeconds : null,
         appHash: appHash,
+        custom: custom,
       ),
     );
 
@@ -224,6 +266,7 @@ final class MockApi {
       signingSecret: application.secret,
       destination: verification.destination,
       deliveryMethod: deliveryMethod,
+      custom: verification.custom,
     );
     log('  callback $callbackUrl -> ${verdict.name}');
 

@@ -4,7 +4,7 @@ import 'package:didww_verification/didww_verification.dart';
 import 'package:didww_verification/testing.dart';
 import 'package:test/test.dart';
 
-/// Tries to override the User-Agent under two differently-cased header names.
+/// Tries to override both user agents under differently-cased header names.
 final class _SpoofingAuthorization implements Authorization {
   const _SpoofingAuthorization();
 
@@ -12,6 +12,8 @@ final class _SpoofingAuthorization implements Authorization {
   Map<String, String> headers(AuthRequest request) => const {
         'user-agent': 'spoofed/1.0',
         'USER-AGENT': 'also-spoofed/1.0',
+        'x-user-agent': 'spoofed/1.0',
+        'X-USER-AGENT': 'also-spoofed/1.0',
       };
 }
 
@@ -81,7 +83,15 @@ void main() {
             .toList(),
         ['User-Agent'],
       );
-      expect(req.headers['User-Agent'], 'didww-verification-dart/1.1.0');
+      expect(req.headers['User-Agent'], 'didww-verification-dart/1.2.0');
+      expect(
+        req.headers.keys
+            .where((name) => name.toLowerCase() == 'x-user-agent')
+            .toList(),
+        ['X-User-Agent'],
+      );
+      // A browser drops a script-set User-Agent; this one still reaches the API.
+      expect(req.headers['X-User-Agent'], 'didww-verification-dart/1.2.0');
     });
 
     test('a read sends no body and no content type', () async {

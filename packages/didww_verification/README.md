@@ -15,7 +15,7 @@ needs. Most Flutter apps want the session.
 
 ```yaml
 dependencies:
-  didww_verification: ^1.0.0
+  didww_verification: ^1.2.0
 ```
 
 ### Android release builds need `INTERNET` declared
@@ -113,16 +113,29 @@ a later release is a compile error rather than a silent gap.
 | `VerificationSetupError` | ✔ | The application is misconfigured; no user input can fix it |
 | `VerificationFailed` | ✔ | Anything else, with an `ApiFailure` or an `SdkFailure` |
 
+A paused application (`application_paused`) is a `VerificationSetupError`; a destination whose
+country is disabled in the account settings (`destination_country_disabled`) is a
+`VerificationDenied`.
+
 `states` returns **the same object on every call**, so `StreamBuilder` will not resubscribe on
 each rebuild. Every new listener receives the current state immediately, including one that
 subscribes while another is still subscribed.
 
 ### Which rejections keep the verification alive
 
-Six codes send the session back to `VerificationAwaitingInput` with `lastError` set, so the
+Ten codes send the session back to `VerificationAwaitingInput` with `lastError` set, so the
 user can try again: `code_invalid`, `code_blank`, `code_value_present`,
-`delivery_method_invalid`, `validation_failed`, `not_ready_to_report`. Everything else is
-terminal.
+`delivery_method_invalid`, `validation_failed`, `not_ready_to_report`, and the four rate-limit
+codes `rate_limit_per_ip`, `rate_limit_failed_auth`, `rate_limit_per_account` and
+`rate_limit_public_per_account`. Everything else is terminal.
+
+**A rate-limited submission is retried once.** When a report is refused with one of those four
+codes, it is retried once after `Retry-After` when that is at most 5 seconds: the session stays
+on `VerificationSubmitting`, waits the full `Retry-After` and sends the same code again. A longer
+`Retry-After` is surfaced at once. If it is surfaced, or the retry is limited too, the session
+returns to
+`VerificationAwaitingInput` with that code as `lastError`, and the user can submit again. A
+rate-limited start is not retried and is terminal, like any other start failure.
 
 Three of those boundaries look wrong and are not:
 
@@ -200,9 +213,10 @@ the user anything. `isAutoCaptureArmed` is true only once capture is actually ru
 current verification.
 
 **Capture arms only when the API echoes back the same app hash the device computed.** The hash is
-computed before the start request and sent with it; if the response's `sms.appHash` is absent or
-different, the platform listener is never touched. On a resume the hash is computed and compared
-but **never sent**, which is what lets a resumed SMS verification keep capturing.
+computed before the start request and sent with it; if the response's `sms.autofill` is absent or
+carries a different hash, the platform listener is never touched. On a resume the hash is
+computed and compared but **never sent**, which is what lets a resumed SMS verification keep
+capturing.
 
 > **The trap.** Play App Signing re-signs your upload artifact, so a hash computed from a locally
 > signed build never matches in production and the only symptom is that capture silently never
@@ -215,7 +229,7 @@ first. Running out of budget only stops listening: manual entry stays live, beca
 the API's decision and arrives on the next response.
 
 A capture that reports a malformed hash, or throws while reading one, is **dropped**: the start
-goes out with no `app_hash` and is otherwise identical to one that never had a hash. A bug in an
+goes out with no `autofill` and is otherwise identical to one that never had a hash. A bug in an
 optional convenience must not fail an operation you are billed for.
 
 ### Calls that cannot go wrong
@@ -283,6 +297,7 @@ Future<Verification> startVerification({
   SmsOptions? sms,
   CalloutOptions? callout,
   String? appHash,
+  String? custom,
 });
 
 Future<Verification> getVerification(String id);
@@ -316,9 +331,11 @@ VerificationClient(
 );
 ```
 
-**A start too soon after one for the same destination is rejected, not retried.** It throws
-`TooManyRequestsException` rather than being queued or spaced out for you; wait for
-`retryAfter` before letting the caller try again.
+**A rate-limited request is rejected, not retried, by the client.** It throws
+`TooManyRequestsException` rather than being queued or spaced out for you; wait for `retryAfter`
+before letting the caller try again. See [Errors](#errors) for the limits behind it. The session
+retries a rate-limited submission once — see
+[Which rejections keep the verification alive](#which-rejections-keep-the-verification-alive).
 
 ## Phone numbers
 
@@ -364,12 +381,29 @@ Two different outcomes, worth keeping apart:
 Tags are matched **exactly**, most preferred first: `pl` does not match `pl-PL`. The response names
 the tag that was actually used — see `sms.language` below.
 
-`app_hash` is not part of `SmsOptions`. It is a property of the installed Android build, not a
-choice a caller makes, and a malformed one fails the whole verification — so it is supplied by
-the capture implementation and validated before it reaches the wire. `startVerification` takes an
-`appHash` parameter for that path; a value that is not eleven characters of `[A-Za-z0-9+/]` is
-**dropped**, and the request goes out identical to one that never carried a hash. Losing autofill
-beats failing a paid verification.
+The app hash is normally not something you pass. It is a property of the installed Android build,
+and a malformed one fails the whole verification — so it is supplied by the capture
+implementation and validated before it reaches the wire. `startVerification` takes an `appHash`
+parameter for that path and sends it as `sms.autofill: {"type": "app_hash", "value": ...}`; a
+value that is not eleven characters of `[A-Za-z0-9+/]` is **dropped**, and the request goes out
+identical to one that never carried a hash. Losing autofill beats failing a paid verification.
+With no hash, `autofill` is omitted and the application's default applies. The client never sends
+the deprecated flat `app_hash`: the server rejects a request carrying both it and `autofill`.
+
+To choose the marker yourself, set `SmsOptions.autofill`. It wins over the capture's hash, so
+automatic capture arms only when it is that same app hash:
+
+```dart
+sms: const SmsOptions(autofill: SmsAutofill.domain()), // the application's SMS domain
+sms: const SmsOptions(autofill: SmsAutofill.none()),   // no marker, whatever the default
+```
+
+`SmsAutofill.domain()` is refused with `sms_domain_not_configured` when the application has no SMS
+domain. A malformed block is refused with `autofill_invalid`.
+
+`SmsOptions.templateGroup` names a template group to use instead of the application's default; an
+unknown name is refused with `template_group_not_found`. `CalloutOptions.templateGroup` does the
+same for the callout channel.
 
 On the response, `Verification.sms` is non-null exactly on the sms channel:
 
@@ -378,9 +412,23 @@ final sms = verification.sms;
 sms?.template;                     // the message with its placeholder still in it
 sms?.language;                     // the tag the API chose, which may not be the one you asked for
 sms?.interceptionTimeoutSeconds;   // how long to keep a listener armed
-sms?.appHash;                      // what the API stored, absent if nothing was stored
+sms?.autofill;                     // the marker the API stored, absent if nothing was stored
 sms?.codeLength;                   // how many digits the code is, chosen per application
+sms?.templateGroup;                // the template group applied, or null
+sms?.templateGroupUsed;            // whether the message came from that group's template
+sms?.templateFallbackReason;       // why not, or null when no group applies at all
 ```
+
+`autofill` is an `SmsAutofill`: `type` is `app_hash` or `domain` and stays a string, so a marker
+type added on the server later still decodes; `value` is the hash or the domain. `sms.appHash` is
+deprecated in favour of `sms.autofill` and returns `autofill.value` when the type is `app_hash`;
+the response still carries the flat `app_hash` too, but the client reads only `autofill`.
+
+When no template group applies at all, `templateGroupUsed` is false and both `templateGroup` and
+`templateFallbackReason` are null. `group_missing` comes with a null `templateGroup`: the
+application's group no longer exists. `templateFallbackReason` is a raw string;
+`knownTemplateFallbackReason` is the typed `TemplateFallbackReason`, or null for a reason this
+release does not model.
 
 `codeLength` is a server fact, chosen per application — never compile a length into the client.
 
@@ -388,6 +436,25 @@ sms?.codeLength;                   // how many digits the code is, chosen per ap
 long to keep an on-device listener armed. It does not shorten the verification: manual entry keeps
 working until `expiresAt`, and running out of budget only stops listening. Do not render it as a
 timer to the user.
+
+## The `custom` value
+
+`custom` is an optional string of up to 4096 characters, passed to `startVerification` or
+`session.start`, for context your callback server can use to decide whether to allow the
+verification — the app version or a device signal, say:
+
+```dart
+await client.startVerification(
+  destination: destination,
+  deliveryMethod: DeliveryMethod.sms,
+  custom: 'app=2.4.1;platform=android',
+);
+```
+
+It is forwarded to your callback server and is **not** returned by any response, so it is not on
+`Verification`. It is sent from the device, so treat it as untrusted input and validate it on the
+callback server. An empty string counts as absent, and a longer one is rejected with `422
+custom_too_long`, which surfaces as `ApiErrorCode.customTooLong`.
 
 ## The `callout` block
 
@@ -411,6 +478,9 @@ On the response, `Verification.callout` is non-null exactly on the callout chann
 ```dart
 verification.callout?.language;    // the tag the announcement is played in
 verification.callout?.codeLength;  // how many digits the code is, chosen per application
+verification.callout?.templateGroup;          // as on the sms block
+verification.callout?.templateGroupUsed;
+verification.callout?.templateFallbackReason;
 ```
 
 **The two channels have separate language sets, and neither is a subset of the other.** A tag that
@@ -463,11 +533,24 @@ Everything the SDK throws descends from `VerificationException`, which is `seale
 `TooManyRequestsException` (429) and `ServerException` (5xx). A status with none of its own
 arrives as a plain `ApiException` rather than a decode failure.
 
-**`TooManyRequestsException`** is thrown for `destination_in_cooldown` — a start requested again
-too soon after one for the same application and destination. Its `retryAfter` is the
-`Retry-After` header, parsed as a `Duration`; it is `null` if the header was absent or not a
-plain integer. `startVerification` is never retried, on this status or any other — see
-[Retries](#retries).
+**`TooManyRequestsException`** is thrown for a 429. Its code says which limit was hit:
+
+| Code | Meaning |
+|---|---|
+| `destination_in_cooldown` | A verification for this destination was requested too recently |
+| `rate_limit_per_ip` | Too many requests from this IP address |
+| `rate_limit_failed_auth` | Too many failed authentication attempts from this IP address |
+| `rate_limit_per_account` | Too many requests for this account |
+| `rate_limit_public_per_account` | Too many public requests for this account |
+| `volume_limit_reached` | The application reached its daily or monthly verification limit |
+
+Wait the number of seconds in `Retry-After` before trying again. For `volume_limit_reached` it
+can be long (days): surface it to the user instead of retrying, or contact support to raise the
+limit.
+
+Its `retryAfter` is the `Retry-After` header, parsed as a `Duration`; it is `null` if the header
+was absent or not a plain integer. `startVerification` is never retried, on this status or any
+other — see [Retries](#retries).
 
 **Switch on the code, not on the prose.** `detail` is fixed English wording that exists for logs;
 `code` is the contract:
@@ -511,7 +594,8 @@ call, so a transport that never answers cannot hang the session.
 
 The main library carries no `dart:io`, so the package builds and runs on the web. There is no
 built-in transport there — supply one over `package:http` or `fetch`, and the client says so
-explicitly if you forget.
+explicitly if you forget. Every request carries `X-User-Agent` as well as `User-Agent`, because a
+browser drops a `User-Agent` set by script; the API allows it in a cross-origin request.
 
 `IOHttpTransport` therefore lives in its own library, and you only need it to hold one by hand:
 
@@ -553,6 +637,18 @@ out, records every request, and can be told to throw on a given attempt.
 `final`, so `class MockClient extends Mock implements VerificationClient` will not compile. Drive a
 real client over a fake transport instead — the request bodies are then asserted as they go on the
 wire, rather than as a mock happened to record them.
+
+### Testing on sandbox
+
+```dart
+VerificationClient(auth: …, environment: VerificationEnvironment.sandbox);
+```
+
+The sandbox sends no real SMS and places no real calls. Only the reserved test numbers give a
+predefined result, such as delivered, failed or expired, and a delivered one has a fixed code. Any
+other number is never delivered to, and its verification ends as failed. The test numbers, their
+outcomes and the code to submit are listed in
+[Testing on sandbox](https://doc.didww.com/otp-verification/testing.html).
 
 ## No dependencies
 

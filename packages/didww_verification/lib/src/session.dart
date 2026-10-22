@@ -36,6 +36,17 @@ final class VerificationSession {
   /// Losing capture costs autofill; blocking here costs the whole verification.
   static const Duration _appHashBudget = Duration(seconds: 5);
 
+  static const Set<ApiErrorCode> _requestRateLimits = {
+    ApiErrorCode.rateLimitPerIp,
+    ApiErrorCode.rateLimitFailedAuth,
+    ApiErrorCode.rateLimitPerAccount,
+    ApiErrorCode.rateLimitPublicPerAccount,
+  };
+
+  /// The longest `Retry-After` a rate-limited submission waits out for its one
+  /// retry; a longer one is surfaced at once.
+  static const Duration _maxRateLimitWait = Duration(seconds: 5);
+
   final List<MultiStreamController<VerificationState>> _listeners = [];
   late final Stream<VerificationState> _states =
       Stream<VerificationState>.multi(_onListen, isBroadcast: true);
@@ -88,11 +99,15 @@ final class VerificationSession {
   /// which is not terminal.
   ///
   /// Never throws: every outcome arrives through [states].
+  ///
+  /// [custom] is free text of up to 4096 characters, forwarded to your callback
+  /// server. It is sent from the device, so the callback server must validate it.
   Future<void> start({
     required String destination,
     required DeliveryMethod deliveryMethod,
     SmsOptions? sms,
     CalloutOptions? callout,
+    String? custom,
   }) async {
     if (_disposed) return;
     if (_startInFlight) {
@@ -122,6 +137,7 @@ final class VerificationSession {
         sms: sms,
         callout: callout,
         appHash: appHash,
+        custom: custom,
       );
       if (_isStale(generation)) return;
       _enterLive(verification);
@@ -242,10 +258,10 @@ final class VerificationSession {
     _emit(const VerificationSubmitting());
 
     try {
-      final verification = await _client.reportVerification(
-        live.verificationId,
-        deliveryMethod: live.deliveryMethod,
-        value: ReportValue.code(value),
+      final verification = await _reportRetryingRateLimit(
+        live,
+        value,
+        generation,
       );
       if (_isStale(generation)) return;
       _emit(stateFor(verification));
@@ -260,6 +276,32 @@ final class VerificationSession {
       _emit(_unexpected(error));
     } finally {
       if (!_isStale(generation)) _submitInFlight = false;
+    }
+  }
+
+  /// Retries the report once after `Retry-After` when a rate limit refused it.
+  Future<Verification> _reportRetryingRateLimit(
+    VerificationAwaitingInput live,
+    String value,
+    int generation,
+  ) async {
+    Future<Verification> send() => _client.reportVerification(
+          live.verificationId,
+          deliveryMethod: live.deliveryMethod,
+          value: ReportValue.code(value),
+        );
+
+    try {
+      return await send();
+    } on TooManyRequestsException catch (error) {
+      final rateLimited = error.errors.isNotEmpty &&
+          error.errors.every((e) => _requestRateLimits.contains(e.known));
+      final wait = error.retryAfter ?? const Duration(seconds: 1);
+      if (!rateLimited || wait > _maxRateLimitWait) rethrow;
+
+      await Future<void>.delayed(wait);
+      if (_isStale(generation)) rethrow;
+      return send();
     }
   }
 
@@ -334,7 +376,8 @@ final class VerificationSession {
     if (capture == null || expected == null) return;
     // The echo gate: an absent or differing hash means the API would not
     // address a message to this build, so the platform listener is never armed.
-    if (verification.sms?.appHash != expected) return;
+    final echo = verification.sms?.autofill;
+    if (echo?.type != 'app_hash' || echo?.value != expected) return;
 
     _template = verification.sms?.template;
     _capture = capture.messages().listen(_onMessage);

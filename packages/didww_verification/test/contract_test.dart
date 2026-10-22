@@ -183,31 +183,34 @@ void main() {
   });
 
   group('a status the snapshot names becomes the code it names', () {
-    final statusCodes = (contract['statusCodes'] as Map<String, dynamic>)
-        .map((key, value) => MapEntry(int.parse(key), value as String));
+    final statusCodes = contract['statusCodes'] as Map<String, dynamic>;
 
     for (final entry in statusCodes.entries) {
+      final status = int.parse(entry.key);
       // 422 carries whichever validation slug applies, so the snapshot names no
       // single code for it and there is nothing here to pin.
-      if (entry.key == 422) continue;
+      if (status == 422) continue;
 
-      test('${entry.key} is ${entry.value}', () async {
-        final fixture = clientWith(
-          status: entry.key,
-          body: errorsJson([entry.value]),
-        );
+      final codes = entry.value is List
+          ? (entry.value as List<dynamic>).cast<String>()
+          : [entry.value as String];
 
-        await expectLater(
-          fixture.client.getVerification('ver-1'),
-          throwsA(
-            isA<ApiException>().having(
-              (error) => error.errors.single.code,
-              'code',
-              entry.value,
+      for (final code in codes) {
+        test('$status is $code', () async {
+          final fixture = clientWith(status: status, body: errorsJson([code]));
+
+          await expectLater(
+            fixture.client.getVerification('ver-1'),
+            throwsA(
+              isA<ApiException>().having(
+                (error) => error.errors.single.code,
+                'code',
+                code,
+              ),
             ),
-          ),
-        );
-      });
+          );
+        });
+      }
     }
   });
 
@@ -229,6 +232,7 @@ void main() {
 
       expect(expected, contains('destination'));
       expect(expected, contains('delivery_method'));
+      expect(expected, contains('custom'));
       expect(data.keys.toSet(), {'destination', 'delivery_method', 'sms'});
       // The channel block is named for the channel, which is what
       // "<delivery_method> block" records.
@@ -329,9 +333,17 @@ void main() {
         () async {
       expect(
         (smsBlock['required'] as List).cast<String>(),
-        ['template', 'language', 'interception_timeout', 'code_length'],
+        [
+          'template',
+          'language',
+          'interception_timeout',
+          'code_length',
+          'template_group',
+          'template_group_used',
+          'template_fallback_reason',
+        ],
       );
-      expect((smsBlock['optional'] as List).cast<String>(), ['app_hash']);
+      expect((smsBlock['optional'] as List).cast<String>(), ['autofill']);
 
       final fixture = clientWith(body: verificationJson());
       final verification = await fixture.client.getVerification('ver-1');
@@ -340,7 +352,8 @@ void main() {
       expect(verification.sms?.language, isNotNull);
       expect(verification.sms?.interceptionTimeoutSeconds, isNotNull);
       expect(verification.sms?.codeLength, isNotNull);
-      expect(verification.sms?.appHash, isNull);
+      expect(verification.sms?.templateGroupUsed, isNotNull);
+      expect(verification.sms?.autofill, isNull);
     });
   });
 
@@ -359,11 +372,17 @@ void main() {
       expect(verification.sms, isNull);
     });
 
-    test('the required member is read and there are no optional ones',
+    test('the required members are read and there are no optional ones',
         () async {
       expect(
         (calloutBlock['required'] as List).cast<String>(),
-        ['language', 'code_length'],
+        [
+          'language',
+          'code_length',
+          'template_group',
+          'template_group_used',
+          'template_fallback_reason',
+        ],
       );
       expect(calloutBlock['optional'], isEmpty);
 
@@ -379,14 +398,54 @@ void main() {
 
       expect(verification.callout?.language, 'pt-BR');
       expect(verification.callout?.codeLength, isNotNull);
+      expect(verification.callout?.templateGroupUsed, isNotNull);
     });
   });
 
   group('the constraints the snapshot records are the ones compiled in', () {
     final constraints = contract['constraints'] as Map<String, dynamic>;
 
+    test('an app hash is sent as the autofill type the snapshot names',
+        () async {
+      final autofill = constraints['autofill'] as Map<String, dynamic>;
+      expect(
+        (autofill['types'] as List).cast<String>(),
+        [
+          const SmsAutofill.appHash('A1b2C3d4E5f').type,
+          const SmsAutofill.domain().type,
+          const SmsAutofill.none().type,
+        ],
+      );
+
+      final fixture = clientWith(status: 201);
+      await fixture.client.startVerification(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+        appHash: 'A1b2C3d4E5f',
+      );
+      final data = fixture.transport.bodyAt(0)['data'] as Map<String, dynamic>;
+      final sms = data['sms'] as Map;
+      expect(sms.keys, ['autofill']);
+      expect(sms['autofill'], {'type': 'app_hash', 'value': 'A1b2C3d4E5f'});
+    });
+
     test('the app hash format is the snapshot`s, character for character', () {
       expect(appHashFormat.pattern, constraints['appHashFormat']);
+    });
+
+    test('the custom value is sent whole, up to the snapshot`s limit',
+        () async {
+      final limit = (constraints['customMaxLength'] as Map)['value'] as int;
+      final fixture = clientWith(status: 201);
+      await fixture.client.startVerification(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+        custom: 'x' * limit,
+      );
+
+      final data = fixture.transport.bodyAt(0)['data'] as Map<String, dynamic>;
+      expect(data['custom'], hasLength(limit));
+      expect(limit, 4096);
     });
 
     test('the destination is sent as digits, so the echo can be compared',

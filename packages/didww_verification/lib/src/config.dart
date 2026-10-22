@@ -34,7 +34,7 @@ final class RetryPolicy {
   final Duration baseDelay;
 }
 
-/// What the SDK sends as `User-Agent` on every request.
+/// What the SDK sends as `User-Agent` and `X-User-Agent` on every request.
 const String defaultUserAgent = 'didww-verification-dart/$packageVersion';
 
 /// Client-wide settings.

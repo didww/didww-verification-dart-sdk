@@ -101,6 +101,10 @@ void main() {
       'delivery_method_invalid',
       'validation_failed',
       'not_ready_to_report',
+      'rate_limit_per_ip',
+      'rate_limit_failed_auth',
+      'rate_limit_per_account',
+      'rate_limit_public_per_account',
     ];
 
     for (final code in recoverable) {
@@ -116,8 +120,8 @@ void main() {
       });
     }
 
-    test('the set is exactly six and matches the modelled codes', () {
-      expect(recoverable, hasLength(6));
+    test('the set is exactly ten and matches the modelled codes', () {
+      expect(recoverable, hasLength(10));
       expect(
         recoverableErrorCodes.map((c) => c.wire).toSet(),
         recoverable.toSet(),
@@ -174,9 +178,18 @@ void main() {
       expect(next.detail, 'no url');
     });
 
+    test('application_paused is a setup error', () {
+      final next =
+          terminalStateForError(ApiErrorItem.fromWire('application_paused'));
+
+      expect(next, isA<VerificationSetupError>());
+      expect((next as VerificationSetupError).code, 'application_paused');
+    });
+
     for (final code in const [
       'denied_by_callback',
       'denied_invalid_callback_response',
+      'destination_country_disabled',
     ]) {
       test('$code is denied', () {
         final next = terminalStateForError(ApiErrorItem.fromWire(code));
@@ -226,6 +239,18 @@ void main() {
 
       expect(
           reasonLabel((next! as VerificationFailed).reason), 'api:superseded');
+    });
+
+    test('a channel the destination is not supported on is a failure', () {
+      final next = terminalStateFor(
+        _decoded(
+          status: 'failed',
+          errorCode: 'destination_not_supported_for_channel',
+        ),
+      );
+
+      expect(reasonLabel((next! as VerificationFailed).reason),
+          'api:destination_not_supported_for_channel');
     });
 
     test('failed with no outcome falls back to internal_error', () {

@@ -93,23 +93,78 @@ void main() {
       expect(v.sms!.template, isNull);
     });
 
-    test('app_hash is absent unless one was stored', () {
+    test('autofill is absent unless one was stored', () {
       final without = decodeVerification(
         _verificationJson(
             sms: const {'template': 't', 'interception_timeout': 120}),
       );
-      expect(without.sms!.appHash, isNull);
+      expect(without.sms!.autofill, isNull);
 
       final with_ = decodeVerification(
         _verificationJson(
           sms: const {
             'template': 't',
             'interception_timeout': 120,
-            'app_hash': 'A1b2C3d4E5f',
+            'autofill': {'type': 'app_hash', 'value': 'A1b2C3d4E5f'},
           },
         ),
       );
-      expect(with_.sms!.appHash, 'A1b2C3d4E5f');
+      expect(
+        with_.sms!.autofill,
+        const SmsAutofill(type: 'app_hash', value: 'A1b2C3d4E5f'),
+      );
+    });
+
+    test('the deprecated appHash is the value of an app_hash autofill', () {
+      SmsInfo decode(Map<String, Object?> autofill) => decodeVerification(
+            _verificationJson(sms: {'template': 't', 'autofill': autofill}),
+          ).sms!;
+
+      // ignore: deprecated_member_use_from_same_package
+      expect(decode({'type': 'app_hash', 'value': 'A1b2C3d4E5f'}).appHash,
+          'A1b2C3d4E5f');
+      // A marker type this release does not model still decodes, and carries
+      // no app hash.
+      final other = decode({'type': 'something_new'});
+      expect(other.autofill, const SmsAutofill(type: 'something_new'));
+      // ignore: deprecated_member_use_from_same_package
+      expect(other.appHash, isNull);
+      // Kept for source compatibility with code that builds an SmsInfo itself.
+      // ignore: deprecated_member_use_from_same_package
+      expect(const SmsInfo(appHash: 'A1b2C3d4E5f').appHash, 'A1b2C3d4E5f');
+      expect(
+        () => SmsInfo(
+          autofill: const SmsAutofill(type: 'app_hash', value: 'A1b2C3d4E5f'),
+          // ignore: deprecated_member_use_from_same_package
+          appHash: 'ZZZZZZZZZZZ',
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('the deprecated app_hash key is not read', () {
+      final v = decodeVerification(
+        _verificationJson(
+            sms: const {'template': 't', 'app_hash': 'A1b2C3d4E5f'}),
+      );
+      expect(v.sms!.autofill, isNull);
+    });
+
+    test('a malformed autofill is a decoding error', () {
+      for (final bad in <Object>[
+        'app_hash',
+        {'value': 'A1b2C3d4E5f'},
+        {'type': 7},
+        {'type': 'app_hash', 'value': 7},
+      ]) {
+        expect(
+          () => decodeVerification(
+            _verificationJson(sms: {'template': 't', 'autofill': bad}),
+          ),
+          throwsA(isA<DecodingException>()),
+          reason: '$bad',
+        );
+      }
     });
 
     test('the chosen sms language is read', () {
@@ -134,6 +189,72 @@ void main() {
       expect(v.sms, isNull);
 
       expect(decodeVerification(_verificationJson()).callout, isNull);
+    });
+
+    test('a domain autofill is read back with the domain as its value', () {
+      final v = decodeVerification(
+        _verificationJson(sms: const {
+          'template': 't',
+          'autofill': {'type': 'domain', 'value': 'example.com'},
+        }),
+      );
+      expect(
+        v.sms!.autofill,
+        const SmsAutofill(type: 'domain', value: 'example.com'),
+      );
+      // ignore: deprecated_member_use_from_same_package
+      expect(v.sms!.appHash, isNull);
+    });
+
+    test('the template group fields are read on both channels', () {
+      const fields = {
+        'template_group': 'onboarding',
+        'template_group_used': false,
+        'template_fallback_reason': 'language_missing',
+      };
+      final sms = decodeVerification(
+        _verificationJson(sms: const {'template': 't', ...fields}),
+      ).sms!;
+      final callout = decodeVerification(
+        _verificationJson(
+          deliveryMethod: 'callout',
+          sms: null,
+          callout: const {'language': 'en-US', ...fields},
+        ),
+      ).callout!;
+
+      expect(sms.templateGroup, 'onboarding');
+      expect(sms.templateGroupUsed, isFalse);
+      expect(sms.templateFallbackReason, 'language_missing');
+      expect(sms.knownTemplateFallbackReason,
+          TemplateFallbackReason.languageMissing);
+      expect(callout.templateGroup, 'onboarding');
+      expect(callout.templateGroupUsed, isFalse);
+      expect(callout.knownTemplateFallbackReason,
+          TemplateFallbackReason.languageMissing);
+    });
+
+    test('an unmodelled fallback reason decodes and keeps its raw value', () {
+      final sms = decodeVerification(
+        _verificationJson(sms: const {
+          'template': 't',
+          'template_group': 'onboarding',
+          'template_group_used': false,
+          'template_fallback_reason': 'something_new',
+        }),
+      ).sms!;
+      expect(sms.templateFallbackReason, 'something_new');
+      expect(sms.knownTemplateFallbackReason, isNull);
+    });
+
+    test('a template_group_used that is not a boolean is a decoding error', () {
+      expect(
+        () => decodeVerification(
+          _verificationJson(
+              sms: const {'template': 't', 'template_group_used': 'yes'}),
+        ),
+        throwsA(isA<DecodingException>()),
+      );
     });
 
     test('a missing code length degrades rather than failing', () {
@@ -318,13 +439,15 @@ void main() {
       });
     });
 
-    test('sends a well-formed app hash', () {
+    test('sends a well-formed app hash as an app_hash autofill', () {
       final body = startBody(
         destination: '491511234567',
         method: DeliveryMethod.sms,
         appHash: 'A1b2C3d4E5f',
       );
-      expect(_sms(body)['app_hash'], 'A1b2C3d4E5f');
+      expect(
+          _sms(body)['autofill'], {'type': 'app_hash', 'value': 'A1b2C3d4E5f'});
+      expect(_sms(body).containsKey('app_hash'), isFalse);
     });
 
     test('drops a malformed app hash and sends the request anyway', () {
@@ -357,6 +480,123 @@ void main() {
         method: DeliveryMethod.sms,
       );
       expect(jsonEncode(dropped), jsonEncode(never));
+    });
+  });
+
+  group('the autofill option', () {
+    test('a domain or none marker is sent with no value', () {
+      for (final autofill in const [SmsAutofill.domain(), SmsAutofill.none()]) {
+        final body = startBody(
+          destination: '491511234567',
+          method: DeliveryMethod.sms,
+          sms: SmsOptions(autofill: autofill),
+        );
+        expect(_sms(body), {
+          'autofill': {'type': autofill.type},
+        });
+      }
+    });
+
+    test('a hand-built non-app_hash marker never sends its value', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(
+          autofill: SmsAutofill(type: 'domain', value: 'example.com'),
+        ),
+      );
+      expect(_sms(body), {
+        'autofill': {'type': 'domain'},
+      });
+    });
+
+    test('an app hash marker is sent with its value', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(autofill: SmsAutofill.appHash('A1b2C3d4E5f')),
+      );
+      expect(_sms(body), {
+        'autofill': {'type': 'app_hash', 'value': 'A1b2C3d4E5f'},
+      });
+    });
+
+    test('wins over the app hash argument, so only one marker is sent', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(autofill: SmsAutofill.domain()),
+        appHash: 'A1b2C3d4E5f',
+      );
+      expect(_sms(body), {
+        'autofill': {'type': 'domain'},
+      });
+    });
+
+    test('a malformed app hash marker is dropped like the argument', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(autofill: SmsAutofill.appHash('tooshort')),
+      );
+      expect(_data(body).containsKey('sms'), isFalse);
+    });
+  });
+
+  group('the template group option', () {
+    test('travels in the block of its channel', () {
+      final sms = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(templateGroup: 'onboarding'),
+      );
+      expect(_sms(sms), {'template_group': 'onboarding'});
+
+      final callout = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.callout,
+        callout: const CalloutOptions(templateGroup: 'onboarding'),
+      );
+      expect(_data(callout)['callout'], {'template_group': 'onboarding'});
+    });
+
+    test('is omitted when null', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        sms: const SmsOptions(),
+      );
+      expect(_data(body).containsKey('sms'), isFalse);
+    });
+  });
+
+  group('the custom value', () {
+    test('sits at the top level of data, whichever the channel', () {
+      for (final method in DeliveryMethod.values) {
+        final body = startBody(
+          destination: '491511234567',
+          method: method,
+          custom: 'build=42',
+        );
+        expect(_data(body)['custom'], 'build=42', reason: method.wire);
+      }
+    });
+
+    test('is omitted when null', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+      );
+      expect(_data(body).containsKey('custom'), isFalse);
+    });
+
+    test('is sent as given, without trimming', () {
+      final body = startBody(
+        destination: '491511234567',
+        method: DeliveryMethod.sms,
+        custom: ' a\n"b" ',
+      );
+      expect(_data(body)['custom'], ' a\n"b" ');
     });
   });
 
@@ -450,7 +690,9 @@ void _languageTags() {
         method: DeliveryMethod.sms,
         appHash: 'A1b2C3d4E5f',
       );
-      expect(_sms(body), {'app_hash': 'A1b2C3d4E5f'});
+      expect(_sms(body), {
+        'autofill': {'type': 'app_hash', 'value': 'A1b2C3d4E5f'},
+      });
     });
   });
 }

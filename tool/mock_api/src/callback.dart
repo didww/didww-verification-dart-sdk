@@ -29,6 +29,7 @@ Future<CallbackVerdict> askCallback(
   required String signingSecret,
   required String destination,
   required String deliveryMethod,
+  String? custom,
   Duration timeout = const Duration(seconds: 5),
 }) async {
   final Uri url;
@@ -36,6 +37,7 @@ Future<CallbackVerdict> askCallback(
     url = Uri.parse(callbackUrl).replace(queryParameters: {
       'destination': destination,
       'delivery_method': deliveryMethod,
+      if (custom != null) 'custom': custom,
     });
   } on FormatException {
     return CallbackVerdict.invalid;

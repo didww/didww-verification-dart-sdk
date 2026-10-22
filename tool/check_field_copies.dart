@@ -54,6 +54,9 @@ const _copies = [
     typeFile: '$_client/models.dart',
     function: '_decodeSms',
     functionFile: '$_client/wire.dart',
+    // Only the deprecated constructor argument sets it; the wire fills
+    // autofill, which the appHash getter reads when it is unset.
+    except: {'_appHash'},
   ),
   _Copy(
     type: 'CalloutInfo',

@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-28",
+  "capturedAt": "2026-10-19",
   "source": "a hand-made reading of the API, not generated; see contract/README.md",
   "basePaths": {
     "production": "https://verification.didww.com",
@@ -77,6 +77,13 @@
     "expired",
     "denied"
   ],
+  "templateFallbackReasons": [
+    "language_missing",
+    "version_pending",
+    "version_rejected",
+    "audio_not_ready",
+    "group_missing"
+  ],
   "apiErrorCodes": [
     "destination_blank",
     "destination_invalid",
@@ -84,7 +91,11 @@
     "delivery_method_inclusion",
     "delivery_method_invalid",
     "languages_invalid",
+    "autofill_invalid",
     "app_hash_invalid",
+    "custom_too_long",
+    "template_group_not_found",
+    "sms_domain_not_configured",
     "code_blank",
     "code_value_present",
     "destination_not_supported_for_channel",
@@ -96,6 +107,11 @@
     "unauthorized",
     "balance_insufficient",
     "destination_in_cooldown",
+    "rate_limit_per_ip",
+    "rate_limit_failed_auth",
+    "rate_limit_per_account",
+    "rate_limit_public_per_account",
+    "volume_limit_reached",
     "validation_failed",
     "internal_error",
     "dispatch_failed",
@@ -106,7 +122,9 @@
     "superseded",
     "denied_missing_callback_url",
     "denied_by_callback",
-    "denied_invalid_callback_response"
+    "denied_invalid_callback_response",
+    "application_paused",
+    "destination_country_disabled"
   ],
   "verificationErrorCodes": [
     "dispatch_failed",
@@ -117,8 +135,12 @@
     "superseded",
     "denied_missing_callback_url",
     "denied_by_callback",
-    "denied_invalid_callback_response"
+    "denied_invalid_callback_response",
+    "application_paused",
+    "destination_country_disabled",
+    "destination_not_supported_for_channel"
   ],
+  "verificationErrorCodesNote": "destination_not_supported_for_channel is the outcome of a failed verification (an unsupported destination is a 201 with status failed) and stays in the envelope list for compatibility. stale_dispatch is no longer sent - those verifications are reported as dispatch_failed - and is kept, deprecated, only so existing matches still compile",
   "errorDetails": {
     "destination_blank": "destination can't be blank",
     "destination_invalid": "destination is invalid",
@@ -126,7 +148,11 @@
     "delivery_method_inclusion": "delivery method is not included in the list",
     "delivery_method_invalid": "delivery method is invalid",
     "languages_invalid": "languages are invalid",
+    "autofill_invalid": "autofill is invalid",
     "app_hash_invalid": "app hash is invalid",
+    "custom_too_long": "custom is too long",
+    "template_group_not_found": "template group not found",
+    "sms_domain_not_configured": "application has no SMS domain configured",
     "code_blank": "code can't be blank",
     "code_value_present": "code must be blank",
     "destination_not_supported_for_channel": "destination not supported for provided delivery method",
@@ -138,6 +164,11 @@
     "unauthorized": "unauthorized",
     "balance_insufficient": "insufficient balance",
     "destination_in_cooldown": "verification for this destination was requested too recently",
+    "rate_limit_per_ip": "too many requests from this IP address; contact support to raise the limit",
+    "rate_limit_failed_auth": "too many failed authentication attempts from this IP address; try again later",
+    "rate_limit_per_account": "too many requests for this account; contact support to raise the limit",
+    "rate_limit_public_per_account": "too many public requests for this account; contact support to raise the limit",
+    "volume_limit_reached": "the application reached its daily or monthly verification limit",
     "validation_failed": "request is invalid",
     "internal_error": "internal server error",
     "dispatch_failed": "failed to deliver",
@@ -148,7 +179,9 @@
     "superseded": "superseded",
     "denied_missing_callback_url": "application has no callback_url",
     "denied_by_callback": "your callback denied the request",
-    "denied_invalid_callback_response": "callback response was invalid"
+    "denied_invalid_callback_response": "callback response was invalid",
+    "application_paused": "application is paused",
+    "destination_country_disabled": "destination country is disabled in account settings"
   },
   "envelopes": {
     "success": {
@@ -182,27 +215,35 @@
       "template",
       "language",
       "interception_timeout",
-      "code_length"
+      "code_length",
+      "template_group",
+      "template_group_used",
+      "template_fallback_reason"
     ],
     "optional": [
-      "app_hash"
+      "autofill"
     ],
-    "note": "template is kept when null; app_hash is omitted entirely when none was stored"
+    "note": "template is kept when null; autofill is omitted entirely when no marker was stored, and is {\"type\": \"app_hash\", \"value\": \"<hash>\"} or {\"type\": \"domain\", \"value\": \"<the application's SMS domain>\"} when one was; the response also carries the deprecated app_hash with the same value for app_hash, which the client does not read. when no template group applies at all, template_group_used is false and template_group and template_fallback_reason are null; group_missing comes with template_group null (the application's group no longer exists)"
   },
   "calloutBlock": {
     "presentOnlyFor": "callout",
     "required": [
       "language",
-      "code_length"
+      "code_length",
+      "template_group",
+      "template_group_used",
+      "template_fallback_reason"
     ],
-    "optional": []
+    "optional": [],
+    "note": "template_group and template_fallback_reason as for the sms block"
   },
   "requestFields": {
     "start": {
       "data": [
         "destination",
         "delivery_method",
-        "<delivery_method> block"
+        "<delivery_method> block",
+        "custom"
       ]
     },
     "report": {
@@ -218,11 +259,31 @@
     "402": "balance_insufficient",
     "404": "not_found",
     "422": "validation failures",
-    "429": "destination_in_cooldown",
+    "429": [
+      "destination_in_cooldown",
+      "rate_limit_per_ip",
+      "rate_limit_failed_auth",
+      "rate_limit_per_account",
+      "rate_limit_public_per_account",
+      "volume_limit_reached"
+    ],
     "500": "internal_error"
   },
   "constraints": {
+    "autofill": {
+      "types": [
+        "app_hash",
+        "domain",
+        "none"
+      ],
+      "note": "sent as sms.autofill: {\"type\": \"app_hash\", \"value\": <appHashFormat>}, {\"type\": \"domain\"} or {\"type\": \"none\"}; omitted or null takes the application default. A malformed block - not an object, an unknown type, app_hash without a string value, any value with domain or none - is 422 autofill_invalid; a value outside appHashFormat is 422 app_hash_invalid; domain for an application with no SMS domain is 422 sms_domain_not_configured. The deprecated flat sms.app_hash is read only when autofill is absent; a request with both a non-null autofill and a non-null app_hash is 422 autofill_invalid, so the client never sends app_hash"
+    },
     "appHashFormat": "^[A-Za-z0-9+/]{11}$",
+    "customMaxLength": {
+      "value": 4096,
+      "note": "characters; an empty custom is treated as absent, and the value is forwarded to the callback server and never returned"
+    },
+    "templateGroup": "sent as sms.template_group or callout.template_group to use that template group instead of the application's default; an unknown name is 422 template_group_not_found",
     "codeLength": {
       "min": 4,
       "max": 8,
@@ -247,6 +308,7 @@
       "hours": 24,
       "note": "a finished verification is hard-deleted after this, so a later read by id or by number answers 404 rather than the outcome; persist anything needed beyond the window"
     },
-    "reportBeforeDispatch": "'pending' spans a window in which a report is refused with not_ready_to_report (422): the status is already public and the row underneath it has not finished dispatching, so the code is retryable rather than terminal"
+    "reportBeforeDispatch": "'pending' spans a window in which a report is refused with not_ready_to_report (422): the status is already public and the row underneath it has not finished dispatching, so the code is retryable rather than terminal",
+    "tooManyRequests": "429 carries one of: destination_in_cooldown (a verification for this destination was requested too recently), rate_limit_per_ip (too many requests from this IP address), rate_limit_failed_auth (too many failed authentication attempts from this IP address), rate_limit_per_account (too many requests for this account), rate_limit_public_per_account (too many public requests for this account) or volume_limit_reached (the application reached its daily or monthly verification limit). Wait the number of seconds in Retry-After before trying again; for volume_limit_reached it can be long (days), so surface it instead of retrying"
   }
 }

@@ -14,7 +14,7 @@ The client package has no Flutter dependency and runs under plain `dart test`.
 
 ## Status
 
-1.1.0. Both packages are on pub.dev:
+1.2.0. Both packages are on pub.dev:
 [`didww_verification`](https://pub.dev/packages/didww_verification) and
 [`didww_verification_sms`](https://pub.dev/packages/didww_verification_sms). From 1.0.0
 onwards a breaking change to either package's public API requires a major version.
