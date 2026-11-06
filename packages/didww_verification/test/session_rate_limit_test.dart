@@ -167,4 +167,23 @@ void main() {
       session.dispose();
     });
   });
+
+  test('destination_prefix_rate_limited on start is terminal and not retried',
+      () {
+    fakeAsync((async) {
+      final transport = FakeTransport([
+        _tooMany('destination_prefix_rate_limited', retryAfter: '120'),
+      ]);
+      final session = VerificationSession(client: clientOver(transport.call));
+      session.start(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+      );
+
+      async.elapse(const Duration(seconds: 130));
+      expect(transport.callCount, 1);
+      expect(session.state, isA<VerificationFailed>());
+      session.dispose();
+    });
+  });
 }
