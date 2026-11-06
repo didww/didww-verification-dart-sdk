@@ -15,6 +15,11 @@ Unreleased.
   and never retried: wait `Retry-After`, or tell the user "Too many verification requests right
   now. Please try again later."
 
+### Changed
+
+- **The new `ApiErrorCode` value breaks exhaustive `switch` expressions** over the enum. Add
+  the new case, or a wildcard arm.
+
 ## 1.2.0
 
 Released — 2026-10.
