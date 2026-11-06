@@ -83,7 +83,7 @@ void main() {
             .toList(),
         ['User-Agent'],
       );
-      expect(req.headers['User-Agent'], 'didww-verification-dart/1.2.0');
+      expect(req.headers['User-Agent'], 'didww-verification-dart/1.3.0');
       expect(
         req.headers.keys
             .where((name) => name.toLowerCase() == 'x-user-agent')
@@ -91,7 +91,7 @@ void main() {
         ['X-User-Agent'],
       );
       // A browser drops a script-set User-Agent; this one still reaches the API.
-      expect(req.headers['X-User-Agent'], 'didww-verification-dart/1.2.0');
+      expect(req.headers['X-User-Agent'], 'didww-verification-dart/1.3.0');
     });
 
     test('a read sends no body and no content type', () async {
@@ -325,6 +325,35 @@ void main() {
                   const Duration(seconds: 17))
               .having((e) => e.has(ApiErrorCode.destinationInCooldown),
                   'has(destinationInCooldown)', isTrue),
+        ),
+      );
+    });
+
+    test('429 destination_prefix_rate_limited carries code and Retry-After',
+        () async {
+      final fake = FakeTransport([
+        HttpResponse(
+          status: 429,
+          headers: const {'retry-after': '120'},
+          body: jsonEncode({
+            'errors': [
+              {
+                'code': 'destination_prefix_rate_limited',
+                'detail': 'too many verifications to this number range; '
+                    'try again later',
+              },
+            ],
+          }),
+        ),
+      ]);
+      await expectLater(
+        _client(fake).getVerification('ver-1'),
+        throwsA(
+          isA<TooManyRequestsException>()
+              .having((e) => e.retryAfter, 'retryAfter',
+                  const Duration(seconds: 120))
+              .having((e) => e.has(ApiErrorCode.destinationPrefixRateLimited),
+                  'has(destinationPrefixRateLimited)', isTrue),
         ),
       );
     });

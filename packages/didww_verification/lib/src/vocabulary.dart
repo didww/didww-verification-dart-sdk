@@ -189,6 +189,10 @@ enum ApiErrorCode {
   /// retrying.
   volumeLimitReached('volume_limit_reached'),
 
+  /// Too many verifications to this number range. Wait `Retry-After`; it is
+  /// terminal, so surface it instead of retrying.
+  destinationPrefixRateLimited('destination_prefix_rate_limited'),
+
   /// The request failed validation without a more specific code.
   validationFailed('validation_failed'),
 
