@@ -6,7 +6,7 @@ change to the public surface requires a major version.
 
 ## 1.3.0
 
-Unreleased.
+Released — 2026-11.
 
 - **Depends on `didww_verification ^1.3.0`.** No change in this package.
 
