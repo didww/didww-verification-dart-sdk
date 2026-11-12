@@ -4,6 +4,25 @@ Notable changes to `didww_verification`. Versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): from 1.0.0 onwards a breaking
 change to the public surface requires a major version.
 
+## 1.3.0
+
+Unreleased.
+
+### Added
+
+- **`channelBlocked`** (`channel_blocked`) error code. A start can be refused with a 422 carrying
+  it when the account can't use the requested delivery method; the session ends in
+  `VerificationSetupError`. Contact DIDWW support.
+- **`destinationPrefixRateLimited`** error code (`destination_prefix_rate_limited`): a start can
+  be refused with a 429 when there are too many verifications to a number range. It is terminal
+  and never retried: wait `Retry-After`, or tell the user "Too many verification requests right
+  now. Please try again later."
+
+### Changed
+
+- **The new `ApiErrorCode` value breaks exhaustive `switch` expressions** over the enum. Add
+  the new case, or a wildcard arm.
+
 ## 1.2.0
 
 Released — 2026-10.

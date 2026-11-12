@@ -15,7 +15,7 @@ needs. Most Flutter apps want the session.
 
 ```yaml
 dependencies:
-  didww_verification: ^1.2.0
+  didww_verification: ^1.3.0
 ```
 
 ### Android release builds need `INTERNET` declared
@@ -113,9 +113,10 @@ a later release is a compile error rather than a silent gap.
 | `VerificationSetupError` | ✔ | The application is misconfigured; no user input can fix it |
 | `VerificationFailed` | ✔ | Anything else, with an `ApiFailure` or an `SdkFailure` |
 
-A paused application (`application_paused`) is a `VerificationSetupError`; a destination whose
-country is disabled in the account settings (`destination_country_disabled`) is a
-`VerificationDenied`.
+A paused application (`application_paused`) is a `VerificationSetupError`, and so is
+`channel_blocked` (the account can't use the requested delivery method; contact DIDWW
+support); a destination whose country is disabled in the account settings
+(`destination_country_disabled`) is a `VerificationDenied`.
 
 `states` returns **the same object on every call**, so `StreamBuilder` will not resubscribe on
 each rebuild. Every new listener receives the current state immediately, including one that
@@ -543,10 +544,12 @@ arrives as a plain `ApiException` rather than a decode failure.
 | `rate_limit_per_account` | Too many requests for this account |
 | `rate_limit_public_per_account` | Too many public requests for this account |
 | `volume_limit_reached` | The application reached its daily or monthly verification limit |
+| `destination_prefix_rate_limited` | Too many verifications to this number range; try again later |
 
 Wait the number of seconds in `Retry-After` before trying again. For `volume_limit_reached` it
 can be long (days): surface it to the user instead of retrying, or contact support to raise the
-limit.
+limit. `destination_prefix_rate_limited` is never retried automatically either: surface "Too many
+verification requests right now. Please try again later." to the user.
 
 Its `retryAfter` is the `Retry-After` header, parsed as a `Duration`; it is `null` if the header
 was absent or not a plain integer. `startVerification` is never retried, on this status or any

@@ -168,6 +168,10 @@ enum ApiErrorCode {
   /// The account cannot fund another verification.
   balanceInsufficient('balance_insufficient'),
 
+  /// The account cannot use the requested delivery method; no verification is
+  /// created. Contact DIDWW support.
+  channelBlocked('channel_blocked'),
+
   /// A verification for this destination was requested too recently; retry
   /// after the `Retry-After` header.
   destinationInCooldown('destination_in_cooldown'),
@@ -188,6 +192,10 @@ enum ApiErrorCode {
   /// `Retry-After` can be long (days): surface it to the user instead of
   /// retrying.
   volumeLimitReached('volume_limit_reached'),
+
+  /// Too many verifications to this number range. Wait `Retry-After`; it is
+  /// terminal, so surface it instead of retrying.
+  destinationPrefixRateLimited('destination_prefix_rate_limited'),
 
   /// The request failed validation without a more specific code.
   validationFailed('validation_failed'),

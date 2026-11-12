@@ -21,6 +21,6 @@ void main() {
   });
 
   testWidgets('package version is reported', (tester) async {
-    expect(smsPackageVersion, '1.2.0');
+    expect(smsPackageVersion, '1.3.0');
   });
 }

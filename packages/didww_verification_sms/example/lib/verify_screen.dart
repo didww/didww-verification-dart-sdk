@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:didww_verification/didww_verification.dart';
 import 'package:didww_verification_sms/didww_verification_sms.dart';
+// material_ui needs Flutter 3.47; the SDK floor is 3.27.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 
 /// Runs one verification and renders whatever state it reaches.

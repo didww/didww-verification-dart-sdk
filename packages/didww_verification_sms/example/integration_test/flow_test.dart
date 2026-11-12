@@ -5,6 +5,8 @@ import 'package:didww_verification_sms_example/start_screen.dart'
 import 'package:didww_verification_sms_example/verify_screen.dart'
     show VerificationView;
 import 'package:flutter/foundation.dart';
+// material_ui needs Flutter 3.47; the SDK floor is 3.27.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

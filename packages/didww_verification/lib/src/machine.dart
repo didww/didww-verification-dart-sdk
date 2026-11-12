@@ -35,7 +35,8 @@ bool isRecoverable(ApiErrorItem item) => recoverableErrorCodes.contains(
 VerificationState terminalStateForError(ApiErrorItem error) =>
     switch (error.known) {
       ApiErrorCode.deniedMissingCallbackUrl ||
-      ApiErrorCode.applicationPaused =>
+      ApiErrorCode.applicationPaused ||
+      ApiErrorCode.channelBlocked =>
         VerificationSetupError(code: error.code, detail: error.detail),
       ApiErrorCode.deniedByCallback ||
       ApiErrorCode.deniedInvalidCallbackResponse ||

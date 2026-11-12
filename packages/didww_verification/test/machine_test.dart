@@ -186,6 +186,14 @@ void main() {
       expect((next as VerificationSetupError).code, 'application_paused');
     });
 
+    test('channel_blocked is a setup error', () {
+      final next =
+          terminalStateForError(ApiErrorItem.fromWire('channel_blocked'));
+
+      expect(next, isA<VerificationSetupError>());
+      expect((next as VerificationSetupError).code, 'channel_blocked');
+    });
+
     for (final code in const [
       'denied_by_callback',
       'denied_invalid_callback_response',

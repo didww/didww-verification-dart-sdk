@@ -418,6 +418,24 @@ void main() {
       expect(transport.callCount, 0);
     });
 
+    test('a start refused with channel_blocked ends in a setup error',
+        () async {
+      final session = VerificationSession(
+        client: clientOver(
+          (request) async => jsonResponse(422, errorsJson(['channel_blocked'])),
+        ),
+      );
+      addTearDown(session.dispose);
+
+      await session.start(
+        destination: '+49 151 1234567',
+        deliveryMethod: DeliveryMethod.sms,
+      );
+
+      final setup = session.state as VerificationSetupError;
+      expect(setup.code, 'channel_blocked');
+    });
+
     test('a rejected start becomes a terminal state carrying the code',
         () async {
       final session = VerificationSession(
