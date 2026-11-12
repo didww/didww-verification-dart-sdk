@@ -168,6 +168,10 @@ enum ApiErrorCode {
   /// The account cannot fund another verification.
   balanceInsufficient('balance_insufficient'),
 
+  /// The account cannot use the requested delivery method; no verification is
+  /// created. Contact DIDWW support.
+  channelBlocked('channel_blocked'),
+
   /// A verification for this destination was requested too recently; retry
   /// after the `Retry-After` header.
   destinationInCooldown('destination_in_cooldown'),

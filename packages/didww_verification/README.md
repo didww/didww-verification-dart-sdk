@@ -113,9 +113,10 @@ a later release is a compile error rather than a silent gap.
 | `VerificationSetupError` | ✔ | The application is misconfigured; no user input can fix it |
 | `VerificationFailed` | ✔ | Anything else, with an `ApiFailure` or an `SdkFailure` |
 
-A paused application (`application_paused`) is a `VerificationSetupError`; a destination whose
-country is disabled in the account settings (`destination_country_disabled`) is a
-`VerificationDenied`.
+A paused application (`application_paused`) is a `VerificationSetupError`, and so is
+`channel_blocked` (the account can't use the requested delivery method; contact DIDWW
+support); a destination whose country is disabled in the account settings
+(`destination_country_disabled`) is a `VerificationDenied`.
 
 `states` returns **the same object on every call**, so `StreamBuilder` will not resubscribe on
 each rebuild. Every new listener receives the current state immediately, including one that

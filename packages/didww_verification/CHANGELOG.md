@@ -10,6 +10,9 @@ Unreleased.
 
 ### Added
 
+- **`channelBlocked`** (`channel_blocked`) error code. A start can be refused with a 422 carrying
+  it when the account can't use the requested delivery method; the session ends in
+  `VerificationSetupError`. Contact DIDWW support.
 - **`destinationPrefixRateLimited`** error code (`destination_prefix_rate_limited`): a start can
   be refused with a 429 when there are too many verifications to a number range. It is terminal
   and never retried: wait `Retry-After`, or tell the user "Too many verification requests right

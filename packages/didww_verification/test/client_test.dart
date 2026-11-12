@@ -299,6 +299,32 @@ void main() {
       await check(422, isA<ValidationException>());
     });
 
+    test('422 channel_blocked carries its code', () async {
+      final fake = FakeTransport([
+        HttpResponse(
+          status: 422,
+          headers: const {},
+          body: jsonEncode({
+            'errors': [
+              {
+                'code': 'channel_blocked',
+                'detail': 'delivery method is blocked for this account',
+              },
+            ],
+          }),
+        ),
+      ]);
+      await expectLater(
+        _client(fake).getVerification('ver-1'),
+        throwsA(
+          isA<ValidationException>().having(
+              (e) => e.has(ApiErrorCode.channelBlocked),
+              'has(channelBlocked)',
+              isTrue),
+        ),
+      );
+    });
+
     test('429 becomes TooManyRequestsException with Retry-After parsed',
         () async {
       final fake = FakeTransport([
